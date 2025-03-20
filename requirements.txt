@@ -1,0 +1,5 @@
+pymupdf
+pillow
+pytesseract
+pytest
+ttkthemes
