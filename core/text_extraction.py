@@ -2,6 +2,7 @@
 Text extraction and OCR operations for PDF files.
 """
 import fitz  # PyMuPDF
+import os
 
 class TextExtractor:
     """Class for extracting text from PDF files."""
@@ -41,6 +42,62 @@ class TextExtractor:
             text_by_page.append(page.get_text())
         
         return text_by_page
+    
+    def extract_text(self, doc, scope="all_pages", page_index=None):
+        """Extract text based on scope.
+        
+        Args:
+            doc: PyMuPDF Document object
+            scope (str): 'current_page' or 'all_pages'
+            page_index (int, optional): Index of the current page if scope is 'current_page'
+            
+        Returns:
+            str: Extracted text
+        """
+        if not doc:
+            return ""
+            
+        try:
+            if scope == "current_page" and page_index is not None:
+                # Extract text from the selected page
+                page = doc[page_index]
+                return self.extract_text_from_page(page)
+            else:
+                # Extract text from all pages
+                text_by_page = self.extract_text_from_document(doc)
+                
+                # Format the text with page numbers
+                formatted_text = ""
+                for i, page_text in enumerate(text_by_page):
+                    formatted_text += f"--- Page {i+1} ---\n\n"
+                    formatted_text += page_text
+                    formatted_text += "\n\n"
+                
+                return formatted_text
+        except Exception as e:
+            print(f"Error extracting text: {e}")
+            return f"Error extracting text: {e}"
+    
+    def save_text_to_file(self, text, file_path):
+        """Save extracted text to a file.
+        
+        Args:
+            text (str): Text to save
+            file_path (str): Path to save the text file
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if not text or not file_path:
+            return False
+            
+        try:
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(text)
+            return True
+        except Exception as e:
+            print(f"Error saving text to file: {e}")
+            return False
     
     def search_text(self, doc, search_string):
         """Search for text in a PDF document.

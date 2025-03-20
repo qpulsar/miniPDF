@@ -32,6 +32,49 @@ class PDFAnnotator:
             print(f"Error adding text annotation: {e}")
             return False
     
+    def create_note_at_position(self, page, position, text, title="Note", icon="note"):
+        """Create a text annotation at the specified position.
+        
+        Args:
+            page: PyMuPDF Page object
+            position (tuple): Position coordinates (x, y)
+            text (str): Annotation text content
+            title (str, optional): Annotation title. Defaults to "Note".
+            icon (str, optional): Icon type. Defaults to "note".
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            # Create a rectangle for the annotation (small square at the specified position)
+            x, y = position
+            rect = (x, y, x + 20, y + 20)
+            
+            # Add the text annotation
+            return self.add_text_annotation(page, rect, text, title, icon)
+        except Exception as e:
+            print(f"Error creating note at position: {e}")
+            return False
+    
+    def get_annotations(self, page, annotation_type=None):
+        """Get all annotations from a page.
+        
+        Args:
+            page: PyMuPDF Page object
+            annotation_type (str, optional): Type of annotation to filter. Defaults to None.
+            
+        Returns:
+            list: List of annotations
+        """
+        try:
+            annots = page.annots()
+            if annotation_type:
+                return [a for a in annots if a.type[1] == annotation_type]
+            return annots
+        except Exception as e:
+            print(f"Error getting annotations: {e}")
+            return []
+    
     def add_highlight(self, page, rect, color=(1, 1, 0)):
         """Add a highlight annotation to a PDF page.
         

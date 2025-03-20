@@ -512,10 +512,131 @@ class Toolbar(ttk.Frame):
     
     def _extract_text(self):
         """Extract text from the current PDF."""
-        # This will be implemented later
-        messagebox.showinfo("Info", "Extract Text functionality will be implemented soon.")
+        # Check if a PDF is open
+        if not self.app.pdf_manager.doc:
+            messagebox.showinfo("Info", "Please open a PDF file first.")
+            return
+        
+        # Get the current page index
+        selected_page_index = self.app.sidebar.get_selected_page_index()
+        if selected_page_index is None:
+            messagebox.showinfo("Info", "Please select a page first.")
+            return
+        
+        # Import the necessary modules
+        from core.text_extraction import TextExtractor
+        from gui.dialogs import TextExtractionDialog
+        
+        # Create a text extractor instance
+        text_extractor = TextExtractor()
+        
+        # Create and show the extraction dialog
+        extraction_dialog = TextExtractionDialog(
+            self.app.root,
+            self.app,
+            self.app.pdf_manager.doc,
+            selected_page_index,
+            lambda dialog, scope, page_index, text_area: self._perform_extraction(
+                dialog, text_extractor, self.app.pdf_manager.doc, scope, page_index, text_area
+            )
+        )
+    
+    def _perform_extraction(self, dialog, text_extractor, doc, scope, selected_page_index, text_area):
+        """Perform the actual text extraction.
+        
+        Args:
+            dialog: Tkinter dialog
+            text_extractor: TextExtractor instance
+            doc: PyMuPDF Document object
+            scope (str): 'current_page' or 'all_pages'
+            selected_page_index: Index of the selected page
+            text_area: Tkinter Text widget to display the extracted text
+        """
+        # Clear the text area
+        text_area.delete("1.0", tk.END)
+        
+        try:
+            # Extract text based on scope
+            extracted_text = text_extractor.extract_text(doc, scope, selected_page_index)
+            
+            # Display the extracted text
+            text_area.insert(tk.END, extracted_text)
+            
+            # Update status
+            self.app.status_var.set("Text extracted successfully")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to extract text: {e}")
+            self.app.status_var.set("Text extraction failed")
     
     def _add_note(self):
         """Add a note to the current page."""
-        # This will be implemented later
-        messagebox.showinfo("Info", "Add Note functionality will be implemented soon.")
+        # Check if a PDF is open
+        if not self.app.pdf_manager.doc:
+            messagebox.showinfo("Info", "Please open a PDF file first.")
+            return
+        
+        # Check if a page is selected
+        selected_page_index = self.app.sidebar.get_selected_page_index()
+        if selected_page_index is None:
+            messagebox.showinfo("Info", "Please select a page first.")
+            return
+        
+        # Get the current page
+        page = self.app.pdf_manager.get_page(selected_page_index)
+        if not page:
+            messagebox.showerror("Error", "Failed to get the selected page.")
+            return
+        
+        # Import the necessary modules
+        from gui.dialogs import NoteDialog
+        
+        # Create and show the note dialog
+        note_dialog = NoteDialog(
+            self.app.root,
+            self.app,
+            page,
+            selected_page_index,
+            self._perform_add_note
+        )
+    
+    def _perform_add_note(self, dialog, page, page_index, position, text, title, icon):
+        """Perform the actual note addition.
+        
+        Args:
+            dialog: Tkinter dialog
+            page: PyMuPDF Page object
+            page_index: Index of the page
+            position (tuple): Position coordinates (x, y)
+            text (str): Note text content
+            title (str): Note title
+            icon (str): Note icon type
+        """
+        # Check if text is provided
+        if not text.strip():
+            messagebox.showinfo("Info", "Please enter some text for the note.")
+            return
+        
+        try:
+            # Import the annotator
+            from core.annotations import PDFAnnotator
+            annotator = PDFAnnotator()
+            
+            # Add the text annotation
+            success = annotator.create_note_at_position(page, position, text, title, icon)
+            
+            if success:
+                # Close the dialog
+                dialog.destroy()
+                
+                # Refresh the page view
+                self.app.preview.show_page(page_index)
+                
+                # Update status
+                self.app.status_var.set(f"Note added to page {page_index + 1}")
+                
+                # Mark the document as modified
+                # This will prompt the user to save when closing
+            else:
+                messagebox.showerror("Error", "Failed to add note to the page.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error adding note: {e}")
