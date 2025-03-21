@@ -4,7 +4,9 @@ Edit tab for the toolbar in the miniPDF application.
 import tkinter as tk
 from tkinter import ttk, messagebox
 from gui.toolbar_tabs.base_tab import BaseTab
-from gui.dialogs import TextExtractionDialog, NoteDialog
+from gui.utils import create_icon_button
+from gui.utils.messages import INFO_TITLE, PDF_OPEN_REQUIRED
+from gui.dialogs.text_extraction_dialog import TextExtractionDialog
 
 class EditTab(BaseTab):
     """Edit tab for the toolbar."""
@@ -22,57 +24,69 @@ class EditTab(BaseTab):
     
     def setup_ui(self):
         """Set up the UI components for the edit tab."""
-        # Text operations frame
-        text_frame = self.create_frame("text", "Metin İşlemleri")
+        # Text frame
+        text_frame = self.create_frame("text", "Metin")
         
-        # Extract text button
-        self.add_button(
+        # Extract text button with icon
+        create_icon_button(
             text_frame,
-            text="Metin Çıkart",
-            command=self._extract_text
-        )
+            icon_name="extract_text",
+            text="Metin Çıkar",
+            command=self._extract_text,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5
+        ).pack(side=tk.LEFT, padx=2, pady=2)
         
-        # Add text button
-        self.add_button(
+        # Add text button with icon
+        create_icon_button(
             text_frame,
+            icon_name="add_text",
             text="Metin Ekle",
-            command=self._add_text
-        )
-        
-        # Highlight text button
-        self.add_button(
-            text_frame,
-            text="Metni Vurgula",
-            command=self._highlight_text
-        )
+            command=self._add_text,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5
+        ).pack(side=tk.LEFT, padx=2, pady=2)
         
         # Annotation frame
-        annot_frame = self.create_frame("annotations", "Açıklamalar")
+        annotation_frame = self.create_frame("annotation", "Açıklama")
         
-        # Add note button
-        self.add_button(
-            annot_frame,
+        # Highlight button with icon
+        create_icon_button(
+            annotation_frame,
+            icon_name="highlight",
+            text="Vurgula",
+            command=self._highlight,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5
+        ).pack(side=tk.LEFT, padx=2, pady=2)
+        
+        # Add note button with icon
+        create_icon_button(
+            annotation_frame,
+            icon_name="note",
             text="Not Ekle",
-            command=self._add_note
-        )
+            command=self._add_note,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5
+        ).pack(side=tk.LEFT, padx=2, pady=2)
         
         # Drawing frame
-        draw_frame = self.create_frame("drawing", "Çizim")
+        drawing_frame = self.create_frame("drawing", "Çizim")
         
-        # Draw button
-        self.add_button(
-            draw_frame,
+        # Draw button with icon
+        create_icon_button(
+            drawing_frame,
+            icon_name="draw",
             text="Çiz",
-            command=self._draw
-        )
-        
-        # Delete object button
-        self.add_button(
-            draw_frame,
-            text="Nesneyi Sil",
-            command=self._delete_object,
-            style="Accent.TButton"
-        )
+            command=self._draw,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5
+        ).pack(side=tk.LEFT, padx=2, pady=2)
     
     def _extract_text(self):
         """Extract text from the PDF."""
@@ -87,18 +101,22 @@ class EditTab(BaseTab):
             self.app.pdf_manager.current_page_index,
             self._on_extract_text
         )
-        dialog.show()
     
-    def _on_extract_text(self, text, output_file=None):
+    def _on_extract_text(self, text, save_path=None):
         """
         Callback for text extraction.
         
         Args:
             text (str): Extracted text
-            output_file (str, optional): Path to the output file
+            save_path (str, optional): Path to save the text to
         """
-        if output_file:
-            self.show_success_message(f"Metin başarıyla {output_file} olarak kaydedildi.")
+        if save_path:
+            try:
+                with open(save_path, 'w', encoding='utf-8') as f:
+                    f.write(text)
+                messagebox.showinfo(INFO_TITLE, f"Metin başarıyla kaydedildi: {save_path}")
+            except Exception as e:
+                messagebox.showerror("Hata", f"Metin kaydedilirken hata oluştu: {e}")
     
     def _add_text(self):
         """Add text to the PDF."""
@@ -107,7 +125,7 @@ class EditTab(BaseTab):
         
         self.show_not_implemented()
     
-    def _highlight_text(self):
+    def _highlight(self):
         """Highlight text in the PDF."""
         if not self.check_pdf_open():
             return
@@ -119,44 +137,10 @@ class EditTab(BaseTab):
         if not self.check_pdf_open():
             return
         
-        # Create a dialog for adding a note
-        dialog = NoteDialog(
-            self.app.root,
-            self.app,
-            self.app.pdf_manager.current_doc[self.app.pdf_manager.current_page_index],
-            self.app.pdf_manager.current_page_index,
-            self._on_add_note
-        )
-        dialog.show()
-    
-    def _on_add_note(self, page, page_index, title, content, x, y, icon):
-        """
-        Callback for adding a note.
-        
-        Args:
-            page: PDF page
-            page_index (int): Index of the page
-            title (str): Note title
-            content (str): Note content
-            x (int): X coordinate
-            y (int): Y coordinate
-            icon (str): Note icon
-        """
-        # Implement note addition logic here
-        self.show_success_message(f"Not başarıyla eklendi: {title}")
-        
-        # Refresh the preview
-        self.app.preview.refresh()
+        self.show_not_implemented()
     
     def _draw(self):
         """Draw on the PDF."""
-        if not self.check_pdf_open():
-            return
-        
-        self.show_not_implemented()
-    
-    def _delete_object(self):
-        """Delete an object from the PDF."""
         if not self.check_pdf_open():
             return
         

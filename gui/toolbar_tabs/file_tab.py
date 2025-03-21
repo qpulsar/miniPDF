@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import ttk
 import sys
 from gui.toolbar_tabs.base_tab import BaseTab
+from gui.utils import create_icon_button
 
 class FileTab(BaseTab):
     """File tab for the toolbar."""
@@ -25,64 +26,93 @@ class FileTab(BaseTab):
         # File operations frame
         file_frame = self.create_frame("file", "Dosya İşlemleri")
         
-        # Open button
-        self.add_button(
+        # Open button with icon
+        create_icon_button(
             file_frame,
+            icon_name="open",
             text="PDF Aç",
-            command=self.app.open_pdf
-        )
+            command=self.app.open_pdf,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5
+        ).pack(side=tk.LEFT, padx=2, pady=2)
         
-        # Save button
-        self.add_button(
+        # Save button with icon
+        create_icon_button(
             file_frame,
+            icon_name="save",
             text="PDF Kaydet",
             command=self.app.save_pdf,
-            style="Accent.TButton"
-        )
+            compound=tk.LEFT,
+            padx=5,
+            pady=5,
+            bg="#e3f2fd"  # Light blue background for accent
+        ).pack(side=tk.LEFT, padx=2, pady=2)
         
-        # Save As button
-        self.add_button(
+        # Save As button with icon
+        create_icon_button(
             file_frame,
+            icon_name="save_as",
             text="Farklı Kaydet",
-            command=self.app.save_pdf
-        )
+            command=self.app.save_pdf,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5
+        ).pack(side=tk.LEFT, padx=2, pady=2)
         
         # Export operations frame
         export_frame = self.create_frame("export", "Dışa Aktar")
         
-        # Export as image
-        self.add_button(
+        # Export as image with icon
+        create_icon_button(
             export_frame,
+            icon_name="image",
             text="Görüntü Olarak",
-            command=self._export_as_image
-        )
+            command=self._export_as_image,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5
+        ).pack(side=tk.LEFT, padx=2, pady=2)
         
-        # Export as text
-        self.add_button(
+        # Export as text with icon
+        create_icon_button(
             export_frame,
+            icon_name="text",
             text="Metin Olarak",
-            command=self._export_as_text
-        )
+            command=self._export_as_text,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5
+        ).pack(side=tk.LEFT, padx=2, pady=2)
         
         # Print operations frame
         print_frame = self.create_frame("print", "Yazdır")
         
-        # Print button
-        self.add_button(
+        # Print button with icon
+        create_icon_button(
             print_frame,
+            icon_name="print",
             text="Yazdır",
-            command=self._print_pdf
-        )
+            command=self._print_pdf,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5
+        ).pack(side=tk.LEFT, padx=2, pady=2)
         
         # Exit frame
         exit_frame = self.create_frame("exit", "Çıkış")
         
-        # Exit button
-        self.add_button(
+        # Exit button with icon
+        create_icon_button(
             exit_frame,
+            icon_name="exit",
             text="Çıkış",
-            command=self._close_application
-        )
+            command=self._close_application,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5,
+            bg="#ffebee"  # Light red background for exit
+        ).pack(side=tk.LEFT, padx=2, pady=2)
     
     def _export_as_image(self):
         """Export the current PDF page as an image."""
@@ -94,21 +124,14 @@ class FileTab(BaseTab):
     
     def _print_pdf(self):
         """Print the current PDF."""
-        if not self.app.pdf_manager.current_file:
+        if not self.check_pdf_open():
             return
         
         # On macOS, use the default PDF viewer to print
         if sys.platform == "darwin":
-            import subprocess
-            subprocess.run(["open", "-a", "Preview", self.app.pdf_manager.current_file])
-        # On Windows, use the default PDF viewer
-        elif sys.platform == "win32":
-            import os
-            os.startfile(self.app.pdf_manager.current_file, "print")
-        # On Linux, use xdg-open
+            self.app.open_with_default_app()
         else:
-            import subprocess
-            subprocess.run(["xdg-open", self.app.pdf_manager.current_file])
+            self.show_not_implemented()
     
     def _close_application(self):
         """Close the application."""

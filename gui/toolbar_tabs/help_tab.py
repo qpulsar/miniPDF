@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import webbrowser
 from gui.toolbar_tabs.base_tab import BaseTab
+from gui.utils import create_icon_button
 
 class HelpTab(BaseTab):
     """Help tab for the toolbar."""
@@ -25,46 +26,66 @@ class HelpTab(BaseTab):
         # Documentation frame
         docs_frame = self.create_frame("docs", "Dokümantasyon")
         
-        # User guide button
-        self.add_button(
+        # User guide button with icon
+        create_icon_button(
             docs_frame,
+            icon_name="text",
             text="Kullanım Kılavuzu",
-            command=self._show_user_guide
-        )
+            command=self._show_user_guide,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5
+        ).pack(side=tk.LEFT, padx=2, pady=2)
         
-        # FAQ button
-        self.add_button(
+        # FAQ button with icon
+        create_icon_button(
             docs_frame,
+            icon_name="help",
             text="Sık Sorulan Sorular",
-            command=self._show_faq
-        )
+            command=self._show_faq,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5
+        ).pack(side=tk.LEFT, padx=2, pady=2)
         
         # Support frame
         support_frame = self.create_frame("support", "Destek")
         
-        # Feedback button
-        self.add_button(
+        # Feedback button with icon
+        create_icon_button(
             support_frame,
+            icon_name="note",
             text="Geri Bildirim",
-            command=self._show_feedback
-        )
+            command=self._show_feedback,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5
+        ).pack(side=tk.LEFT, padx=2, pady=2)
         
-        # Check for updates button
-        self.add_button(
+        # Check for updates button with icon
+        create_icon_button(
             support_frame,
+            icon_name="save",
             text="Güncellemeleri Kontrol Et",
-            command=self._check_updates
-        )
+            command=self._check_updates,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5
+        ).pack(side=tk.LEFT, padx=2, pady=2)
         
         # About frame
         about_frame = self.create_frame("about", "Hakkında")
         
-        # About button
-        self.add_button(
+        # About button with icon
+        create_icon_button(
             about_frame,
+            icon_name="info",
             text="miniPDF Hakkında",
-            command=self._show_about
-        )
+            command=self._show_about,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5
+        ).pack(side=tk.LEFT, padx=2, pady=2)
     
     def _show_user_guide(self):
         """Show the user guide."""
@@ -516,7 +537,7 @@ Hayır, teorik olarak bir sınır yoktur, ancak çok büyük dosyaları birleşt
         # Add the copyright
         ttk.Label(
             frame,
-            text="© 2025 miniPDF Geliştirici Ekibi"
+            text=" 2025 miniPDF Geliştirici Ekibi"
         ).pack(pady=5)
         
         # Add the license

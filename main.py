@@ -9,7 +9,8 @@ from ttkthemes import ThemedTk
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from gui.app import PDFEditorApp
-import config     
+from gui.utils.button_styles import apply_m3_button_styles
+import config
 
 def main():
     """Start the PDF Editor application."""
@@ -18,8 +19,12 @@ def main():
     root.title(config.APP_NAME)
     root.geometry(f"{config.WINDOW_WIDTH}x{config.WINDOW_HEIGHT}")
     
+    # Apply M3 button styles
+    apply_m3_button_styles(root)
+    
     app = PDFEditorApp(root)
-    app.run()
+    
+    root.mainloop()
 
 if __name__ == "__main__":
     main()

@@ -4,6 +4,7 @@ View tab for the toolbar in the miniPDF application.
 import tkinter as tk
 from tkinter import ttk, messagebox
 from gui.toolbar_tabs.base_tab import BaseTab
+from gui.utils import create_icon_button
 
 class ViewTab(BaseTab):
     """View tab for the toolbar."""
@@ -24,185 +25,113 @@ class ViewTab(BaseTab):
         # Zoom frame
         zoom_frame = self.create_frame("zoom", "Yakınlaştırma")
         
-        # Zoom in button
-        self.add_button(
+        # Zoom in button with icon
+        create_icon_button(
             zoom_frame,
+            icon_name="zoom_in",
             text="Yakınlaştır",
-            command=self._zoom_in
-        )
+            command=self._zoom_in,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5
+        ).pack(side=tk.LEFT, padx=2, pady=2)
         
-        # Zoom out button
-        self.add_button(
+        # Zoom out button with icon
+        create_icon_button(
             zoom_frame,
+            icon_name="zoom_out",
             text="Uzaklaştır",
-            command=self._zoom_out
-        )
+            command=self._zoom_out,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5
+        ).pack(side=tk.LEFT, padx=2, pady=2)
         
-        # Layout frame
-        layout_frame = self.create_frame("layout", "Düzen")
+        # Fit to width button with icon
+        create_icon_button(
+            zoom_frame,
+            icon_name="fullscreen",
+            text="Genişliğe Sığdır",
+            command=self._fit_to_width,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5
+        ).pack(side=tk.LEFT, padx=2, pady=2)
         
-        # Page layout button
-        self.add_button(
-            layout_frame,
-            text="Sayfa Düzeni",
-            command=self._change_page_layout
-        )
+        # Fit to page button with icon
+        create_icon_button(
+            zoom_frame,
+            icon_name="fullscreen_exit",
+            text="Sayfaya Sığdır",
+            command=self._fit_to_page,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5
+        ).pack(side=tk.LEFT, padx=2, pady=2)
         
-        # Theme frame
-        theme_frame = self.create_frame("theme", "Tema")
+        # Display frame
+        display_frame = self.create_frame("display", "Görünüm")
         
-        # Theme button
-        self.add_button(
-            theme_frame,
-            text="Tema Değiştir",
-            command=self._change_theme
-        )
+        # Toggle thumbnails button with icon
+        create_icon_button(
+            display_frame,
+            icon_name="image",
+            text="Küçük Resimler",
+            command=self._toggle_thumbnails,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5
+        ).pack(side=tk.LEFT, padx=2, pady=2)
+        
+        # Toggle outline button with icon
+        create_icon_button(
+            display_frame,
+            icon_name="text",
+            text="İçindekiler",
+            command=self._toggle_outline,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5
+        ).pack(side=tk.LEFT, padx=2, pady=2)
     
     def _zoom_in(self):
-        """Zoom in on the PDF."""
-        if not self.app.pdf_manager.current_file:
-            messagebox.showinfo("Bilgi", "Lütfen önce bir PDF dosyası açın.")
+        """Zoom in the PDF view."""
+        if not self.check_pdf_open():
             return
         
-        self.app.zoom_in()
+        self.app.preview.zoom_in()
     
     def _zoom_out(self):
-        """Zoom out on the PDF."""
-        if not self.app.pdf_manager.current_file:
-            messagebox.showinfo("Bilgi", "Lütfen önce bir PDF dosyası açın.")
+        """Zoom out the PDF view."""
+        if not self.check_pdf_open():
             return
         
-        self.app.zoom_out()
+        self.app.preview.zoom_out()
     
-    def _change_page_layout(self):
-        """Change the page layout."""
-        if not self.app.pdf_manager.current_file:
-            messagebox.showinfo("Bilgi", "Lütfen önce bir PDF dosyası açın.")
+    def _fit_to_width(self):
+        """Fit the PDF to the width of the view."""
+        if not self.check_pdf_open():
             return
         
-        # Create a dialog for layout options
-        dialog = tk.Toplevel(self.app.root)
-        dialog.title("Sayfa Düzeni")
-        dialog.geometry("300x250")
-        dialog.transient(self.app.root)
-        dialog.grab_set()
-        
-        # Create a frame for layout options
-        layout_frame = ttk.LabelFrame(dialog, text="Düzen Seçenekleri")
-        layout_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-        
-        # Create a variable for the layout
-        layout_var = tk.StringVar(value="single")
-        
-        # Create radio buttons for layout options
-        layouts = [
-            ("single", "Tek Sayfa"),
-            ("double", "Çift Sayfa"),
-            ("continuous", "Sürekli Kaydırma"),
-            ("book", "Kitap Görünümü")
-        ]
-        
-        for value, text in layouts:
-            ttk.Radiobutton(
-                layout_frame,
-                text=text,
-                variable=layout_var,
-                value=value
-            ).pack(anchor=tk.W, padx=20, pady=10)
-        
-        # Add buttons frame
-        buttons_frame = ttk.Frame(dialog)
-        buttons_frame.pack(fill=tk.X, padx=10, pady=10)
-        
-        # Add apply button
-        ttk.Button(
-            buttons_frame,
-            text="Uygula",
-            command=lambda: self._apply_page_layout(dialog, layout_var.get())
-        ).pack(side=tk.RIGHT, padx=5)
-        
-        # Add cancel button
-        ttk.Button(
-            buttons_frame,
-            text="İptal",
-            command=dialog.destroy
-        ).pack(side=tk.RIGHT, padx=5)
+        self.app.preview.fit_to_width()
     
-    def _apply_page_layout(self, dialog, layout):
-        """
-        Apply the selected page layout.
+    def _fit_to_page(self):
+        """Fit the PDF to the page of the view."""
+        if not self.check_pdf_open():
+            return
         
-        Args:
-            dialog (tk.Toplevel): Dialog window
-            layout (str): Selected layout
-        """
-        # Apply the layout
-        self.app.change_page_layout(layout)
-        
-        # Close the dialog
-        dialog.destroy()
+        self.app.preview.fit_to_page()
     
-    def _change_theme(self):
-        """Change the application theme."""
-        # Create a dialog for theme options
-        dialog = tk.Toplevel(self.app.root)
-        dialog.title("Tema Değiştir")
-        dialog.geometry("300x300")
-        dialog.transient(self.app.root)
-        dialog.grab_set()
+    def _toggle_thumbnails(self):
+        """Toggle the thumbnails panel."""
+        if not self.check_pdf_open():
+            return
         
-        # Create a frame for theme options
-        theme_frame = ttk.LabelFrame(dialog, text="Tema Seçenekleri")
-        theme_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-        
-        # Create a variable for the theme
-        theme_var = tk.StringVar(value="light")
-        
-        # Create radio buttons for theme options
-        themes = [
-            ("light", "Açık Tema"),
-            ("dark", "Koyu Tema"),
-            ("blue", "Mavi Tema"),
-            ("green", "Yeşil Tema"),
-            ("purple", "Mor Tema")
-        ]
-        
-        for value, text in themes:
-            ttk.Radiobutton(
-                theme_frame,
-                text=text,
-                variable=theme_var,
-                value=value
-            ).pack(anchor=tk.W, padx=20, pady=10)
-        
-        # Add buttons frame
-        buttons_frame = ttk.Frame(dialog)
-        buttons_frame.pack(fill=tk.X, padx=10, pady=10)
-        
-        # Add apply button
-        ttk.Button(
-            buttons_frame,
-            text="Uygula",
-            command=lambda: self._apply_theme(dialog, theme_var.get())
-        ).pack(side=tk.RIGHT, padx=5)
-        
-        # Add cancel button
-        ttk.Button(
-            buttons_frame,
-            text="İptal",
-            command=dialog.destroy
-        ).pack(side=tk.RIGHT, padx=5)
+        self.show_not_implemented()
     
-    def _apply_theme(self, dialog, theme):
-        """
-        Apply the selected theme.
+    def _toggle_outline(self):
+        """Toggle the outline panel."""
+        if not self.check_pdf_open():
+            return
         
-        Args:
-            dialog (tk.Toplevel): Dialog window
-            theme (str): Selected theme
-        """
-        # Apply the theme
-        self.app.change_theme(theme)
-        
-        # Close the dialog
-        dialog.destroy()
+        self.show_not_implemented()

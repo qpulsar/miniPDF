@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import os
 from gui.toolbar_tabs.base_tab import BaseTab
+from gui.utils import create_icon_button
 from core.pdf_operations import PDFOperations
 
 class PageTab(BaseTab):
@@ -24,40 +25,119 @@ class PageTab(BaseTab):
     
     def setup_ui(self):
         """Set up the UI components for the page tab."""
-        # Page operations frame
-        page_frame = self.create_frame("page", "Sayfa İşlemleri")
+        # Page navigation frame
+        nav_frame = self.create_frame("navigation", "Sayfa Gezinti")
         
-        # Delete page button
-        self.add_button(
+        # Previous page button with icon
+        create_icon_button(
+            nav_frame,
+            icon_name="navigate_before",
+            text="Önceki Sayfa",
+            command=self._prev_page,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5
+        ).pack(side=tk.LEFT, padx=2, pady=2)
+        
+        # Next page button with icon
+        create_icon_button(
+            nav_frame,
+            icon_name="navigate_next",
+            text="Sonraki Sayfa",
+            command=self._next_page,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5
+        ).pack(side=tk.LEFT, padx=2, pady=2)
+        
+        # Page operations frame
+        page_frame = self.create_frame("page_operations", "Sayfa İşlemleri")
+        
+        # Add blank page button with icon
+        create_icon_button(
             page_frame,
+            icon_name="add_page",
+            text="Boş Sayfa Ekle",
+            command=self._add_blank_page,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5
+        ).pack(side=tk.LEFT, padx=2, pady=2)
+        
+        # Delete page button with icon
+        create_icon_button(
+            page_frame,
+            icon_name="delete_page",
             text="Sayfayı Sil",
             command=self.app.delete_current_page,
-            style="Accent.TButton"
-        )
+            compound=tk.LEFT,
+            padx=5,
+            pady=5
+        ).pack(side=tk.LEFT, padx=2, pady=2)
         
-        # Add blank page button
-        self.add_button(
+        # Extract page button with icon
+        create_icon_button(
             page_frame,
-            text="Boş Sayfa Ekle",
-            command=self._add_blank_page
-        )
-        
-        # Extract page button
-        self.add_button(
-            page_frame,
+            icon_name="extract_page",
             text="Sayfayı Çıkart",
-            command=self._extract_page
-        )
+            command=self._extract_page,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5
+        ).pack(side=tk.LEFT, padx=2, pady=2)
         
-        # Rotation frame
-        rotation_frame = self.create_frame("rotation", "Döndürme")
+        # Rotate page button with icon
+        create_icon_button(
+            page_frame,
+            icon_name="rotate",
+            text="Sayfa Döndür",
+            command=self._rotate_page,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5
+        ).pack(side=tk.LEFT, padx=2, pady=2)
         
-        # Rotate page button
-        self.add_button(
-            rotation_frame,
-            text="Sayfayı Döndür",
-            command=self._rotate_page
-        )
+        # PDF operations frame
+        pdf_frame = self.create_frame("pdf_operations", "PDF İşlemleri")
+        
+        # Split PDF button with icon
+        create_icon_button(
+            pdf_frame,
+            icon_name="split",
+            text="PDF Böl",
+            command=self._split_pdf,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5
+        ).pack(side=tk.LEFT, padx=2, pady=2)
+        
+        # Merge PDFs button with icon
+        create_icon_button(
+            pdf_frame,
+            icon_name="merge",
+            text="PDF Birleştir",
+            command=self._merge_pdfs,
+            compound=tk.LEFT,
+            padx=5,
+            pady=5,
+            bg="#e3f2fd"  # Light blue background for accent
+        ).pack(side=tk.LEFT, padx=2, pady=2)
+    
+    def _prev_page(self):
+        """Go to the previous page."""
+        if not self.check_pdf_open():
+            return
+        
+        self.app.pdf_manager.prev_page()
+        self.app.preview.refresh()
+    
+    def _next_page(self):
+        """Go to the next page."""
+        if not self.check_pdf_open():
+            return
+        
+        self.app.pdf_manager.next_page()
+        self.app.preview.refresh()
     
     def _add_blank_page(self):
         """Add a blank page to the PDF."""
@@ -72,6 +152,34 @@ class PageTab(BaseTab):
             messagebox.showinfo("Başarılı", "Boş sayfa eklendi.")
         else:
             messagebox.showerror("Hata", "Boş sayfa eklenirken bir hata oluştu.")
+    
+    def _extract_page(self):
+        """Extract the current page to a new PDF file."""
+        if not self.app.pdf_manager.current_file:
+            messagebox.showinfo("Bilgi", "Lütfen önce bir PDF dosyası açın.")
+            return
+        
+        # Ask for the output file
+        output_file = filedialog.asksaveasfilename(
+            title="Sayfayı Kaydet",
+            defaultextension=".pdf",
+            filetypes=[("PDF Dosyaları", "*.pdf")],
+            initialdir=os.path.dirname(self.app.pdf_manager.current_file),
+            initialfile=f"sayfa_{self.app.pdf_manager.current_page_index + 1}.pdf"
+        )
+        
+        if not output_file:
+            return
+        
+        # Extract the page using the PDFOperations class
+        if PDFOperations.extract_page(
+            self.app.pdf_manager.current_file,
+            self.app.pdf_manager.current_page_index,
+            output_file
+        ):
+            messagebox.showinfo("Başarılı", f"Sayfa başarıyla çıkartıldı ve {output_file} olarak kaydedildi.")
+        else:
+            messagebox.showerror("Hata", "Sayfa çıkartılırken bir hata oluştu.")
     
     def _rotate_page(self):
         """Rotate the current page."""
@@ -150,30 +258,13 @@ class PageTab(BaseTab):
         else:
             messagebox.showerror("Hata", "Sayfa döndürülürken bir hata oluştu.")
     
-    def _extract_page(self):
-        """Extract the current page to a new PDF file."""
-        if not self.app.pdf_manager.current_file:
-            messagebox.showinfo("Bilgi", "Lütfen önce bir PDF dosyası açın.")
+    def _split_pdf(self):
+        """Split the PDF into multiple files."""
+        if not self.check_pdf_open():
             return
         
-        # Ask for the output file
-        output_file = filedialog.asksaveasfilename(
-            title="Sayfayı Kaydet",
-            defaultextension=".pdf",
-            filetypes=[("PDF Dosyaları", "*.pdf")],
-            initialdir=os.path.dirname(self.app.pdf_manager.current_file),
-            initialfile=f"sayfa_{self.app.pdf_manager.current_page_index + 1}.pdf"
-        )
-        
-        if not output_file:
-            return
-        
-        # Extract the page using the PDFOperations class
-        if PDFOperations.extract_page(
-            self.app.pdf_manager.current_file,
-            self.app.pdf_manager.current_page_index,
-            output_file
-        ):
-            messagebox.showinfo("Başarılı", f"Sayfa başarıyla çıkartıldı ve {output_file} olarak kaydedildi.")
-        else:
-            messagebox.showerror("Hata", "Sayfa çıkartılırken bir hata oluştu.")
+        self.show_not_implemented()
+    
+    def _merge_pdfs(self):
+        """Merge multiple PDFs into one."""
+        self.show_not_implemented()

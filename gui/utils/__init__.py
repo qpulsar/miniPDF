@@ -40,6 +40,12 @@ from gui.utils.messages import (
     ERROR_TITLE,
     WARNING_TITLE
 )
+from gui.utils.icon_utils import (
+    load_svg_icon,
+    create_icon_button,
+    save_svg_to_file,
+    MATERIAL_ICONS
+)
 
 __all__ = [
     # Form utilities
@@ -72,5 +78,11 @@ __all__ = [
     'INFO_TITLE',
     'SUCCESS_TITLE',
     'ERROR_TITLE',
-    'WARNING_TITLE'
+    'WARNING_TITLE',
+    
+    # Icon utilities
+    'load_svg_icon',
+    'create_icon_button',
+    'save_svg_to_file',
+    'MATERIAL_ICONS'
 ]
