@@ -1,7 +1,6 @@
 """
 Main entry point for the PDF Editor application.
 """
-import tkinter as tk
 import sys
 import os
 from ttkthemes import ThemedTk
