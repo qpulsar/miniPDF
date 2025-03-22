@@ -2,7 +2,8 @@
 Edit tab for the toolbar in the miniPDF application.
 """
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import messagebox
+import ttkbootstrap as ttk
 from gui.toolbar_tabs.base_tab import BaseTab
 from gui.utils import create_icon_button
 from gui.utils.messages import INFO_TITLE, PDF_OPEN_REQUIRED
@@ -34,44 +35,44 @@ class EditTab(BaseTab):
             text="Metin Çıkar",
             command=self._extract_text,
             compound=tk.LEFT,
-            padx=5,
-            pady=5
+            style="primary",
+            padding=(5, 5)
         ).pack(side=tk.LEFT, padx=2, pady=2)
         
         # Add text button with icon
         create_icon_button(
             text_frame,
-            icon_name="add_text",
+            icon_name="text",  # add_text yerine text kullan
             text="Metin Ekle",
             command=self._add_text,
             compound=tk.LEFT,
-            padx=5,
-            pady=5
+            style="primary",
+            padding=(5, 5)
         ).pack(side=tk.LEFT, padx=2, pady=2)
         
-        # Annotation frame
-        annotation_frame = self.create_frame("annotation", "Açıklama")
+        # Note operations frame
+        note_frame = self.create_frame("note", "Not İşlemleri")
+        
+        # Add note button with icon
+        create_icon_button(
+            note_frame,
+            icon_name="note",  # add_note yerine note kullan
+            text="Not Ekle",
+            command=self._add_note,
+            compound=tk.LEFT,
+            style="secondary",
+            padding=(5, 5)
+        ).pack(side=tk.LEFT, padx=2, pady=2)
         
         # Highlight button with icon
         create_icon_button(
-            annotation_frame,
+            note_frame,
             icon_name="highlight",
             text="Vurgula",
             command=self._highlight,
             compound=tk.LEFT,
-            padx=5,
-            pady=5
-        ).pack(side=tk.LEFT, padx=2, pady=2)
-        
-        # Add note button with icon
-        create_icon_button(
-            annotation_frame,
-            icon_name="note",
-            text="Not Ekle",
-            command=self._add_note,
-            compound=tk.LEFT,
-            padx=5,
-            pady=5
+            style="secondary",
+            padding=(5, 5)
         ).pack(side=tk.LEFT, padx=2, pady=2)
         
         # Drawing frame
@@ -84,8 +85,8 @@ class EditTab(BaseTab):
             text="Çiz",
             command=self._draw,
             compound=tk.LEFT,
-            padx=5,
-            pady=5
+            style="primary",
+            padding=(5, 5)
         ).pack(side=tk.LEFT, padx=2, pady=2)
     
     def _extract_text(self):

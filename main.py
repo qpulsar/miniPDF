@@ -3,7 +3,7 @@ Main entry point for the PDF Editor application.
 """
 import sys
 import os
-from ttkthemes import ThemedTk
+import ttkbootstrap as ttk
 
 # Add the project root to the Python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -14,8 +14,8 @@ import config
 
 def main():
     """Start the PDF Editor application."""
-    # Use ThemedTk instead of regular Tk
-    root = ThemedTk(theme=config.THEME)
+    # Use ttkbootstrap Window instead of ThemedTk
+    root = ttk.Window(themename=config.THEME)
     root.title(config.APP_NAME)
     root.geometry(f"{config.WINDOW_WIDTH}x{config.WINDOW_HEIGHT}")
     

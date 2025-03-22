@@ -4,78 +4,66 @@ Implementation file for applying the custom pastel minimalist style to the miniP
 import tkinter as tk
 from tkinter import ttk
 import sys
+import ttkbootstrap as ttk
+from theme import get_theme_colors
 
-# Color scheme - Pastel minimalist theme
-COLORS = {
-    # Primary UI elements (headers, buttons)
-    "PRIMARY": "#A8E6CF",
-    
-    # Important action buttons (delete, save)
-    "ACCENT": "#FFAAA5",
-    
-    # Selected tabs and highlights
-    "HIGHLIGHT": "#D4E7FF",
-    
-    # Background color
-    "BACKGROUND": "#F7F7F7",
-    
-    # Text and icons
-    "TEXT": "#4A4A4A",
-    
-    # Secondary elements
-    "SECONDARY": "#E8E8E8",
-    
-    # Borders and separators
-    "BORDER": "#DDDDDD",
-}
-
-def apply_style_to_widget(widget):
+def apply_style_to_widget(widget, colors=None):
     """
     Recursively apply styling to a widget and all its children
     
     Args:
         widget: The tkinter widget to style
+        colors: Dictionary with color definitions, if None will be fetched from theme
     """
+    if colors is None:
+        style = ttk.Style()
+        colors = get_theme_colors(style)
+    
     widget_class = widget.winfo_class()
     
     if widget_class in ('TFrame', 'Frame'):
-        widget.configure(background=COLORS["BACKGROUND"])
+        widget.configure(background=colors["BACKGROUND"])
     
     elif widget_class in ('TLabel', 'Label'):
-        widget.configure(background=COLORS["BACKGROUND"], foreground=COLORS["TEXT"])
+        widget.configure(background=colors["BACKGROUND"], foreground=colors["TEXT"])
     
     elif widget_class in ('TButton', 'Button'):
-        widget.configure(background=COLORS["PRIMARY"], foreground=COLORS["TEXT"])
+        widget.configure(background=colors["PRIMARY"], foreground=colors["ON_PRIMARY"])
     
     elif widget_class == 'TNotebook':
         style = ttk.Style()
-        style.configure('TNotebook', background=COLORS["BACKGROUND"])
-        style.configure('TNotebook.Tab', background=COLORS["PRIMARY"], foreground=COLORS["TEXT"])
+        style.configure('TNotebook', background=colors["BACKGROUND"])
+        style.configure('TNotebook.Tab', background=colors["PRIMARY"], foreground=colors["ON_PRIMARY"])
         style.map('TNotebook.Tab', 
-                 background=[('selected', COLORS["HIGHLIGHT"])],
-                 foreground=[('selected', COLORS["TEXT"])])
+                 background=[('selected', colors["HIGHLIGHT"])],
+                 foreground=[('selected', colors["TEXT"])])
     
     elif widget_class in ('TLabelframe', 'Labelframe'):
-        widget.configure(background=COLORS["BACKGROUND"])
+        widget.configure(background=colors["BACKGROUND"])
         
     elif widget_class == 'Toplevel':
-        widget.configure(background=COLORS["BACKGROUND"])
+        widget.configure(background=colors["BACKGROUND"])
     
     elif widget_class == 'Canvas':
-        widget.configure(background=COLORS["BACKGROUND"])
+        widget.configure(background=colors["BACKGROUND"])
     
     # Apply style to all children
     for child in widget.winfo_children():
-        apply_style_to_widget(child)
+        apply_style_to_widget(child, colors)
 
-def style_important_button(button):
+def style_important_button(button, colors=None):
     """
     Apply accent styling to important buttons like delete or save
     
     Args:
         button: The button widget to style
+        colors: Dictionary with color definitions, if None will be fetched from theme
     """
-    button.configure(background=COLORS["ACCENT"])
+    if colors is None:
+        style = ttk.Style()
+        colors = get_theme_colors(style)
+    
+    button.configure(background=colors["ACCENT"])
 
 def apply_style_to_app(app):
     """
@@ -88,33 +76,37 @@ def apply_style_to_app(app):
     
     # Configure ttk style
     style = ttk.Style()
-    style.configure('TFrame', background=COLORS["BACKGROUND"])
-    style.configure('TLabel', background=COLORS["BACKGROUND"], foreground=COLORS["TEXT"])
-    style.configure('TButton', background=COLORS["PRIMARY"], foreground=COLORS["TEXT"])
-    style.configure('Accent.TButton', background=COLORS["ACCENT"], foreground=COLORS["TEXT"])
-    style.configure('TNotebook', background=COLORS["BACKGROUND"])
-    style.configure('TNotebook.Tab', background=COLORS["PRIMARY"], foreground=COLORS["TEXT"])
+    
+    # Get colors from the current theme
+    colors = get_theme_colors(style)
+    
+    style.configure('TFrame', background=colors["BACKGROUND"])
+    style.configure('TLabel', background=colors["BACKGROUND"], foreground=colors["TEXT"])
+    style.configure('TButton', background=colors["PRIMARY"], foreground=colors["ON_PRIMARY"])
+    style.configure('Accent.TButton', background=colors["ACCENT"], foreground=colors["ON_PRIMARY"])
+    style.configure('TNotebook', background=colors["BACKGROUND"])
+    style.configure('TNotebook.Tab', background=colors["PRIMARY"], foreground=colors["ON_PRIMARY"])
     style.map('TNotebook.Tab', 
-             background=[('selected', COLORS["HIGHLIGHT"])],
-             foreground=[('selected', COLORS["TEXT"])])
-    style.configure('TLabelframe', background=COLORS["BACKGROUND"], foreground=COLORS["TEXT"])
-    style.configure('TLabelframe.Label', background=COLORS["BACKGROUND"], foreground=COLORS["TEXT"])
-    style.configure('Treeview', background=COLORS["BACKGROUND"], fieldbackground=COLORS["BACKGROUND"], foreground=COLORS["TEXT"])
-    style.configure('Treeview.Heading', background=COLORS["PRIMARY"], foreground=COLORS["TEXT"])
-    style.configure('TSeparator', background=COLORS["BORDER"])
+             background=[('selected', colors["HIGHLIGHT"])],
+             foreground=[('selected', colors["TEXT"])])
+    style.configure('TLabelframe', background=colors["BACKGROUND"], foreground=colors["TEXT"])
+    style.configure('TLabelframe.Label', background=colors["BACKGROUND"], foreground=colors["TEXT"])
+    style.configure('Treeview', background=colors["BACKGROUND"], fieldbackground=colors["BACKGROUND"], foreground=colors["TEXT"])
+    style.configure('Treeview.Heading', background=colors["PRIMARY"], foreground=colors["ON_PRIMARY"])
+    style.configure('TSeparator', background=colors["BORDER"])
     
     # Apply style to all widgets
-    apply_style_to_widget(root)
+    apply_style_to_widget(root, colors)
     
     # Style important buttons
     if hasattr(app, 'toolbar'):
         if hasattr(app.toolbar, 'save_button'):
-            style_important_button(app.toolbar.save_button)
+            style_important_button(app.toolbar.save_button, colors)
         if hasattr(app.toolbar, 'delete_page_button'):
-            style_important_button(app.toolbar.delete_page_button)
+            style_important_button(app.toolbar.delete_page_button, colors)
     
     # Configure root window
-    root.configure(background=COLORS["BACKGROUND"])
+    root.configure(background=colors["BACKGROUND"])
 
 def apply_style_to_dialog(dialog):
     """
@@ -123,5 +115,8 @@ def apply_style_to_dialog(dialog):
     Args:
         dialog: The dialog window instance
     """
-    dialog.configure(background=COLORS["BACKGROUND"])
-    apply_style_to_widget(dialog)
+    style = ttk.Style()
+    colors = get_theme_colors(style)
+    
+    dialog.configure(background=colors["BACKGROUND"])
+    apply_style_to_widget(dialog, colors)
