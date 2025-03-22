@@ -96,7 +96,29 @@ class PDFManager:
         
         try:
             path = save_path if save_path else self.file_path
-            self.doc.save(path)
+            import os
+            current_path = os.path.abspath(path)
+            
+            # Önce geçici bir dosyaya kaydet
+            import tempfile
+            temp_dir = tempfile.gettempdir()
+            temp_path = os.path.join(temp_dir, "temp_save.pdf")
+            
+            # Normal kaydet
+            self.doc.save(temp_path)
+            
+            # Dosyayı kapat
+            self.doc.close()
+            
+            # Geçici dosyayı hedef konuma taşı
+            import shutil
+            shutil.move(temp_path, current_path)
+            
+            # Dosyayı tekrar aç
+            self.doc = fitz.open(current_path)
+            
+            if save_path:  # Update file path if saving to a new location
+                self.file_path = save_path
             return True
         except Exception as e:
             print(f"Error saving PDF: {e}")

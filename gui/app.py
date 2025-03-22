@@ -4,11 +4,13 @@ Main application GUI for the PDF Editor.
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog, messagebox
+import ttkbootstrap as ttk
 
 from gui.toolbar import Toolbar
 from gui.sidebar import Sidebar
 from gui.preview import PDFPreview
 from core.pdf_manager import PDFManager
+from theme import get_theme_colors
 import config
 
 class PDFEditorApp:
@@ -24,7 +26,9 @@ class PDFEditorApp:
         
         # Apply ttk style
         self.style = ttk.Style()
-        self.style.theme_use(config.THEME)
+        
+        # Get theme colors
+        self.theme_colors = get_theme_colors(self.style)
         
         # Initialize PDF manager
         self.pdf_manager = PDFManager()
@@ -69,6 +73,24 @@ class PDFEditorApp:
     
     def save_pdf(self):
         """Save the current PDF file."""
+        if not self.pdf_manager.doc:
+            messagebox.showinfo("Info", "No PDF file is currently open.")
+            return
+            
+        # If we have a current file path, save directly to it
+        if self.pdf_manager.file_path:
+            if self.pdf_manager.save_pdf():
+                self.status_var.set(f"Saved: {self.pdf_manager.file_path}")
+                messagebox.showinfo("Success", "PDF file saved successfully.")
+            else:
+                messagebox.showerror("Error", "Failed to save the PDF file.")
+            return
+        
+        # If no current file path, show save dialog
+        self.save_pdf_as()
+
+    def save_pdf_as(self):
+        """Save the current PDF file with a new name."""
         if not self.pdf_manager.doc:
             messagebox.showinfo("Info", "No PDF file is currently open.")
             return
@@ -126,3 +148,28 @@ class PDFEditorApp:
         """Run the application."""
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.root.mainloop()
+        
+    def reload_pdf(self):
+        """Reload the current PDF file to reflect changes."""
+        if self.pdf_manager.current_file:
+            current_page_index = self.preview.current_page_index
+            
+            # Reopen the PDF file
+            if self.pdf_manager.open_pdf(self.pdf_manager.current_file):
+                self.sidebar.update_page_list()
+                
+                # Try to show the same page that was being viewed
+                page_count = self.pdf_manager.get_page_count()
+                if page_count > 0:
+                    # Make sure the page index is valid
+                    if current_page_index is not None and current_page_index < page_count:
+                        self.preview.show_page(current_page_index)
+                    else:
+                        # Show the first page if the previous page is no longer valid
+                        self.preview.show_page(0)
+                else:
+                    self.preview.clear()
+                    
+                self.status_var.set(f"Reloaded: {self.pdf_manager.current_file}")
+            else:
+                messagebox.showerror("Hata", "PDF dosyası yeniden yüklenirken bir hata oluştu.")

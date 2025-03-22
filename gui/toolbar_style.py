@@ -1,30 +1,8 @@
 """
 Custom styling for the toolbar in the PDF Editor application.
 """
-
-# Color scheme - Pastel minimalist theme
-COLORS = {
-    # Primary UI elements (headers, buttons)
-    "PRIMARY": "#A8E6CF",
-    
-    # Important action buttons (delete, save)
-    "ACCENT": "#FFAAA5",
-    
-    # Selected tabs and highlights
-    "HIGHLIGHT": "#D4E7FF",
-    
-    # Background color
-    "BACKGROUND": "#F7F7F7",
-    
-    # Text and icons
-    "TEXT": "#4A4A4A",
-    
-    # Secondary elements
-    "SECONDARY": "#E8E8E8",
-    
-    # Borders and separators
-    "BORDER": "#DDDDDD",
-}
+import ttkbootstrap as ttk
+from theme import get_theme_colors
 
 def apply_toolbar_style(toolbar, style):
     """
@@ -34,65 +12,68 @@ def apply_toolbar_style(toolbar, style):
         toolbar: The toolbar instance
         style: The ttk style object
     """
+    # Get colors from the current theme
+    colors = get_theme_colors(style)
+    
     # Configure the TButton style
     style.configure(
         "TButton",
-        background=COLORS["PRIMARY"],
-        foreground=COLORS["TEXT"]
+        background=colors["PRIMARY"],
+        foreground=colors["ON_PRIMARY"]
     )
     
     # Configure important buttons style
     style.configure(
         "Accent.TButton",
-        background=COLORS["ACCENT"],
-        foreground=COLORS["TEXT"]
+        background=colors["ACCENT"],
+        foreground=colors["ON_PRIMARY"]
     )
     
     # Configure the TFrame style
     style.configure(
         "TFrame",
-        background=COLORS["BACKGROUND"]
+        background=colors["BACKGROUND"]
     )
     
     # Configure the TLabel style
     style.configure(
         "TLabel",
-        background=COLORS["BACKGROUND"],
-        foreground=COLORS["TEXT"]
+        background=colors["BACKGROUND"],
+        foreground=colors["TEXT"]
     )
     
     # Configure the TNotebook style
     style.configure(
         "TNotebook",
-        background=COLORS["BACKGROUND"]
+        background=colors["BACKGROUND"]
     )
     
     # Configure the TNotebook.Tab style
     style.configure(
         "TNotebook.Tab",
-        background=COLORS["PRIMARY"],
-        foreground=COLORS["TEXT"]
+        background=colors["PRIMARY"],
+        foreground=colors["ON_PRIMARY"]
     )
     
     # Configure selected tab
     style.map(
         "TNotebook.Tab",
-        background=[("selected", COLORS["HIGHLIGHT"])],
-        foreground=[("selected", COLORS["TEXT"])]
+        background=[("selected", colors["HIGHLIGHT"])],
+        foreground=[("selected", colors["TEXT"])]
     )
     
     # Configure the TLabelframe style
     style.configure(
         "TLabelframe",
-        background=COLORS["BACKGROUND"],
-        foreground=COLORS["TEXT"]
+        background=colors["BACKGROUND"],
+        foreground=colors["TEXT"]
     )
     
     # Configure the TLabelframe.Label style
     style.configure(
         "TLabelframe.Label",
-        background=COLORS["BACKGROUND"],
-        foreground=COLORS["TEXT"]
+        background=colors["BACKGROUND"],
+        foreground=colors["TEXT"]
     )
     
     # Apply style to important buttons

@@ -2,10 +2,12 @@
 File tab for the toolbar in the miniPDF application.
 """
 import tkinter as tk
-from tkinter import ttk
-import sys
+from tkinter import messagebox, filedialog
+import ttkbootstrap as ttk
+import os
 from gui.toolbar_tabs.base_tab import BaseTab
 from gui.utils import create_icon_button
+from gui.utils.messages import INFO_TITLE
 
 class FileTab(BaseTab):
     """File tab for the toolbar."""
@@ -33,31 +35,30 @@ class FileTab(BaseTab):
             text="PDF Aç",
             command=self.app.open_pdf,
             compound=tk.LEFT,
-            padx=5,
-            pady=5
+            style="primary",
+            padding=(5, 5)
         ).pack(side=tk.LEFT, padx=2, pady=2)
         
         # Save button with icon
         create_icon_button(
             file_frame,
             icon_name="save",
-            text="PDF Kaydet",
+            text="Kaydet",
             command=self.app.save_pdf,
             compound=tk.LEFT,
-            padx=5,
-            pady=5,
-            bg="#e3f2fd"  # Light blue background for accent
+            style="success",
+            padding=(5, 5)
         ).pack(side=tk.LEFT, padx=2, pady=2)
         
-        # Save As button with icon
+        # Save as button with icon
         create_icon_button(
             file_frame,
             icon_name="save_as",
             text="Farklı Kaydet",
-            command=self.app.save_pdf,
+            command=self.app.save_pdf_as,
             compound=tk.LEFT,
-            padx=5,
-            pady=5
+            style="success",
+            padding=(5, 5)
         ).pack(side=tk.LEFT, padx=2, pady=2)
         
         # Export operations frame
@@ -70,8 +71,8 @@ class FileTab(BaseTab):
             text="Görüntü Olarak",
             command=self._export_as_image,
             compound=tk.LEFT,
-            padx=5,
-            pady=5
+            style="primary",
+            padding=(5, 5)
         ).pack(side=tk.LEFT, padx=2, pady=2)
         
         # Export as text with icon
@@ -81,8 +82,8 @@ class FileTab(BaseTab):
             text="Metin Olarak",
             command=self._export_as_text,
             compound=tk.LEFT,
-            padx=5,
-            pady=5
+            style="primary",
+            padding=(5, 5)
         ).pack(side=tk.LEFT, padx=2, pady=2)
         
         # Print operations frame
@@ -95,8 +96,8 @@ class FileTab(BaseTab):
             text="Yazdır",
             command=self._print_pdf,
             compound=tk.LEFT,
-            padx=5,
-            pady=5
+            style="primary",
+            padding=(5, 5)
         ).pack(side=tk.LEFT, padx=2, pady=2)
         
         # Exit frame
@@ -109,9 +110,8 @@ class FileTab(BaseTab):
             text="Çıkış",
             command=self._close_application,
             compound=tk.LEFT,
-            padx=5,
-            pady=5,
-            bg="#ffebee"  # Light red background for exit
+            style="danger",
+            padding=(5, 5)
         ).pack(side=tk.LEFT, padx=2, pady=2)
     
     def _export_as_image(self):
@@ -128,7 +128,7 @@ class FileTab(BaseTab):
             return
         
         # On macOS, use the default PDF viewer to print
-        if sys.platform == "darwin":
+        if os.name == "posix":
             self.app.open_with_default_app()
         else:
             self.show_not_implemented()

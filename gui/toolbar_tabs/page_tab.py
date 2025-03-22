@@ -2,8 +2,8 @@
 Page tab for the toolbar in the miniPDF application.
 """
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
-import os
+from tkinter import messagebox
+import ttkbootstrap as ttk
 from gui.toolbar_tabs.base_tab import BaseTab
 from gui.utils import create_icon_button
 from core.pdf_operations import PDFOperations
@@ -35,8 +35,8 @@ class PageTab(BaseTab):
             text="Önceki Sayfa",
             command=self._prev_page,
             compound=tk.LEFT,
-            padx=5,
-            pady=5
+            style="primary",
+            padding=(5, 5)
         ).pack(side=tk.LEFT, padx=2, pady=2)
         
         # Next page button with icon
@@ -46,8 +46,8 @@ class PageTab(BaseTab):
             text="Sonraki Sayfa",
             command=self._next_page,
             compound=tk.LEFT,
-            padx=5,
-            pady=5
+            style="primary",
+            padding=(5, 5)
         ).pack(side=tk.LEFT, padx=2, pady=2)
         
         # Page operations frame
@@ -60,19 +60,19 @@ class PageTab(BaseTab):
             text="Boş Sayfa Ekle",
             command=self._add_blank_page,
             compound=tk.LEFT,
-            padx=5,
-            pady=5
+            style="secondary",
+            padding=(5, 5)
         ).pack(side=tk.LEFT, padx=2, pady=2)
         
         # Delete page button with icon
         create_icon_button(
             page_frame,
-            icon_name="delete_page",
+            icon_name="delete",
             text="Sayfayı Sil",
             command=self.app.delete_current_page,
             compound=tk.LEFT,
-            padx=5,
-            pady=5
+            style="danger",
+            padding=(5, 5)
         ).pack(side=tk.LEFT, padx=2, pady=2)
         
         # Extract page button with icon
@@ -82,8 +82,8 @@ class PageTab(BaseTab):
             text="Sayfayı Çıkart",
             command=self._extract_page,
             compound=tk.LEFT,
-            padx=5,
-            pady=5
+            style="secondary",
+            padding=(5, 5)
         ).pack(side=tk.LEFT, padx=2, pady=2)
         
         # Rotate page button with icon
@@ -93,8 +93,8 @@ class PageTab(BaseTab):
             text="Sayfa Döndür",
             command=self._rotate_page,
             compound=tk.LEFT,
-            padx=5,
-            pady=5
+            style="secondary",
+            padding=(5, 5)
         ).pack(side=tk.LEFT, padx=2, pady=2)
         
         # PDF operations frame
@@ -107,8 +107,8 @@ class PageTab(BaseTab):
             text="PDF Böl",
             command=self._split_pdf,
             compound=tk.LEFT,
-            padx=5,
-            pady=5
+            style="secondary",
+            padding=(5, 5)
         ).pack(side=tk.LEFT, padx=2, pady=2)
         
         # Merge PDFs button with icon
@@ -118,9 +118,8 @@ class PageTab(BaseTab):
             text="PDF Birleştir",
             command=self._merge_pdfs,
             compound=tk.LEFT,
-            padx=5,
-            pady=5,
-            bg="#e3f2fd"  # Light blue background for accent
+            style="success",
+            padding=(5, 5)
         ).pack(side=tk.LEFT, padx=2, pady=2)
     
     def _prev_page(self):
@@ -227,7 +226,7 @@ class PageTab(BaseTab):
             text="Uygula",
             command=lambda: self._perform_rotation(
                 dialog,
-                self.app.pdf_manager.current_page_index,
+                self.app.preview.current_page_index,
                 angle_var.get()
             )
         ).pack(side=tk.RIGHT, padx=10)

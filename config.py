@@ -1,15 +1,15 @@
 """
-Configuration settings for the PDF Editor application.
+Configuration file for the PDF Editor application.
 """
 
 # Application settings
-APP_NAME = "PDF Editor"
+APP_NAME = "miniPDF"
 APP_VERSION = "1.0.0"
 
 # GUI settings
-WINDOW_WIDTH = 1000
-WINDOW_HEIGHT = 700
-THEME = "adapta"  # Default theme from ttkthemes
+WINDOW_WIDTH = 1280
+WINDOW_HEIGHT = 720
+THEME = "lumen"  # ttkbootstrap teması
 
 # PDF settings
 DEFAULT_ZOOM = 100  # Default zoom level (percentage)
