@@ -2,6 +2,13 @@
 PDF Manager module for handling PDF operations like page deletion, addition, and saving.
 """
 import fitz  # PyMuPDF
+import locale
+
+# Set default locale to handle unsupported locale settings
+try:
+    locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
+except locale.Error:
+    locale.setlocale(locale.LC_ALL, 'C')
 
 class PDFManager:
     """Class for managing PDF documents."""

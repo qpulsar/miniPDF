@@ -3,6 +3,32 @@ Main entry point for the PDF Editor application.
 """
 import sys
 import os
+import locale
+
+# Set default locale to handle unsupported locale settings
+try:
+    locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
+except locale.Error:
+    try:
+        locale.setlocale(locale.LC_ALL, '')
+    except locale.Error:
+        locale.setlocale(locale.LC_ALL, 'C')
+
+# Monkey patch locale.setlocale to prevent errors
+original_setlocale = locale.setlocale
+
+def patched_setlocale(category, loc=None):
+    try:
+        return original_setlocale(category, loc)
+    except locale.Error:
+        if loc is None or loc == '':
+            return 'C'
+        return loc
+
+# Apply the patch
+locale.setlocale = patched_setlocale
+
+# Now import ttkbootstrap
 import ttkbootstrap as ttk
 
 # Add the project root to the Python path
