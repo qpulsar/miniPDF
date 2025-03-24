@@ -2,13 +2,15 @@
 PDF Manager module for handling PDF operations like page deletion, addition, and saving.
 """
 import fitz  # PyMuPDF
-import locale
+import os
+import tempfile
+import shutil
+import logging
+from contextlib import contextmanager
 
-# Set default locale to handle unsupported locale settings
-try:
-    locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
-except locale.Error:
-    locale.setlocale(locale.LC_ALL, 'C')
+# Logging ayarları
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 class PDFManager:
     """Class for managing PDF documents."""
@@ -36,7 +38,7 @@ class PDFManager:
             self.current_file = file_path
             return True
         except Exception as e:
-            print(f"Error opening PDF: {e}")
+            logger.error(f"Error opening PDF: {e}")
             return False
     
     def get_page_count(self):
@@ -62,6 +64,20 @@ class PDFManager:
             return self.doc[page_index]
         return None
     
+    @contextmanager
+    def _create_temp_doc(self):
+        """Context manager to create a temporary document and handle cleanup.
+        
+        Yields:
+            fitz.Document: A new temporary PDF document
+        """
+        temp_doc = fitz.open()
+        try:
+            yield temp_doc
+        finally:
+            if temp_doc:
+                temp_doc.close()
+    
     def delete_page(self, page_index):
         """Delete a page from the PDF.
         
@@ -76,17 +92,28 @@ class PDFManager:
         
         try:
             # Create a new document without the specified page
-            new_doc = fitz.open()
-            for i in range(len(self.doc)):
-                if i != page_index:
-                    new_doc.insert_pdf(self.doc, from_page=i, to_page=i)
+            with self._create_temp_doc() as new_doc:
+                for i in range(len(self.doc)):
+                    if i != page_index:
+                        new_doc.insert_pdf(self.doc, from_page=i, to_page=i)
+                
+                # Save to a temporary file
+                temp_fd, temp_path = tempfile.mkstemp(suffix=".pdf")
+                os.close(temp_fd)
+                new_doc.save(temp_path)
             
-            # Replace the current document with the new one
+            # Close the current document
             self.doc.close()
-            self.doc = new_doc
+            
+            # Open the new document
+            self.doc = fitz.open(temp_path)
+            
+            # Clean up the temporary file
+            os.unlink(temp_path)
+            
             return True
         except Exception as e:
-            print(f"Error deleting page: {e}")
+            logger.error(f"Error deleting page: {e}")
             return False
     
     def save_pdf(self, save_path=None):
@@ -103,32 +130,55 @@ class PDFManager:
         
         try:
             path = save_path if save_path else self.file_path
-            import os
             current_path = os.path.abspath(path)
             
-            # Önce geçici bir dosyaya kaydet
-            import tempfile
-            temp_dir = tempfile.gettempdir()
-            temp_path = os.path.join(temp_dir, "temp_save.pdf")
+            # Create a temporary file
+            fd, temp_path = tempfile.mkstemp(suffix=".pdf")
+            os.close(fd)
             
-            # Normal kaydet
+            # Save to the temporary file
             self.doc.save(temp_path)
             
-            # Dosyayı kapat
-            self.doc.close()
+            # Create a backup of the original file if it exists
+            backup_path = None
+            if os.path.exists(current_path):
+                backup_fd, backup_path = tempfile.mkstemp(suffix=".pdf.bak")
+                os.close(backup_fd)
+                shutil.copy2(current_path, backup_path)
             
-            # Geçici dosyayı hedef konuma taşı
-            import shutil
-            shutil.move(temp_path, current_path)
-            
-            # Dosyayı tekrar aç
-            self.doc = fitz.open(current_path)
-            
-            if save_path:  # Update file path if saving to a new location
-                self.file_path = save_path
-            return True
+            try:
+                # Close the document
+                self.doc.close()
+                
+                # Move the temporary file to the destination
+                shutil.move(temp_path, current_path)
+                
+                # Reopen the document
+                self.doc = fitz.open(current_path)
+                
+                # Remove the backup if everything went well
+                if backup_path and os.path.exists(backup_path):
+                    os.unlink(backup_path)
+                
+                if save_path:  # Update file path if saving to a new location
+                    self.file_path = save_path
+                
+                return True
+            except Exception as e:
+                # If something went wrong and we have a backup, restore it
+                if backup_path and os.path.exists(backup_path):
+                    if os.path.exists(current_path):
+                        os.unlink(current_path)
+                    shutil.move(backup_path, current_path)
+                    
+                # Reopen the original document
+                if self.file_path:
+                    self.doc = fitz.open(self.file_path)
+                
+                raise e
+                
         except Exception as e:
-            print(f"Error saving PDF: {e}")
+            logger.error(f"Error saving PDF: {e}")
             return False
     
     def close(self):

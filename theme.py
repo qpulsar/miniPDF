@@ -3,8 +3,14 @@ Custom theme configuration for the PDF Editor application.
 Uses ttkbootstrap theme colors for consistent styling.
 """
 import ttkbootstrap as ttk
-import tkinter as tk
+import logging
+from functools import lru_cache
 
+# Logging ayarları
+logger = logging.getLogger(__name__)
+
+# Tema renklerini önbelleğe alarak performansı artırma
+@lru_cache(maxsize=8)
 def get_theme_colors(style=None):
     """
     Get the colors from the current ttkbootstrap theme.
@@ -41,21 +47,18 @@ def get_theme_colors(style=None):
             colors_obj = style.colors
             
             # Safely get attributes from the colors object
-            def safe_get_attr(obj, attr, default):
-                return getattr(obj, attr, default)
-            
             theme_colors = {
-                "primary": safe_get_attr(colors_obj, "primary", default_colors["primary"]),
-                "secondary": safe_get_attr(colors_obj, "secondary", default_colors["secondary"]),
-                "success": safe_get_attr(colors_obj, "success", default_colors["success"]),
-                "info": safe_get_attr(colors_obj, "info", default_colors["info"]),
-                "warning": safe_get_attr(colors_obj, "warning", default_colors["warning"]),
-                "danger": safe_get_attr(colors_obj, "danger", default_colors["danger"]),
-                "light": safe_get_attr(colors_obj, "light", default_colors["light"]),
-                "dark": safe_get_attr(colors_obj, "dark", default_colors["dark"]),
-                "bg": safe_get_attr(colors_obj, "bg", default_colors["bg"]),
-                "fg": safe_get_attr(colors_obj, "fg", default_colors["fg"]),
-                "border": safe_get_attr(colors_obj, "border", default_colors["border"]),
+                "primary": getattr(colors_obj, "primary", default_colors["primary"]),
+                "secondary": getattr(colors_obj, "secondary", default_colors["secondary"]),
+                "success": getattr(colors_obj, "success", default_colors["success"]),
+                "info": getattr(colors_obj, "info", default_colors["info"]),
+                "warning": getattr(colors_obj, "warning", default_colors["warning"]),
+                "danger": getattr(colors_obj, "danger", default_colors["danger"]),
+                "light": getattr(colors_obj, "light", default_colors["light"]),
+                "dark": getattr(colors_obj, "dark", default_colors["dark"]),
+                "bg": getattr(colors_obj, "bg", default_colors["bg"]),
+                "fg": getattr(colors_obj, "fg", default_colors["fg"]),
+                "border": getattr(colors_obj, "border", default_colors["border"]),
             }
         else:
             # Get colors from the current theme
@@ -82,12 +85,12 @@ def get_theme_colors(style=None):
             }
     except Exception as e:
         # If anything goes wrong, use default colors
-        print(f"Warning: Could not get theme colors: {e}")
+        logger.warning(f"Could not get theme colors: {e}")
         theme_colors = default_colors
     
     # Determine contrasting text colors for primary, secondary, etc.
-    # Using a simple approach: light text on dark backgrounds, dark text on light backgrounds
     def get_contrasting_color(bg_color):
+        """Calculate a contrasting text color (black or white) based on background color brightness."""
         if not bg_color or not bg_color.startswith('#'):
             return "#FFFFFF"  # Default to white text
             
@@ -101,11 +104,9 @@ def get_theme_colors(style=None):
             brightness = (r * 299 + g * 587 + b * 114) / 1000
             
             # Return white for dark colors, black for light colors
-            if brightness < 128:
-                return "#FFFFFF"  # white text for dark backgrounds
-            else:
-                return "#000000"  # black text for light backgrounds
-        except Exception:
+            return "#FFFFFF" if brightness < 128 else "#000000"
+        except Exception as e:
+            logger.warning(f"Error calculating contrasting color: {e}")
             return "#FFFFFF"  # Default to white text
     
     # Get contrasting text colors
@@ -115,7 +116,8 @@ def get_theme_colors(style=None):
     on_primary = get_contrasting_color(primary_color)
     on_secondary = get_contrasting_color(secondary_color)
     
-    return {
+    # Create the final color dictionary
+    colors = {
         # Primary UI elements (headers, buttons)
         "PRIMARY": theme_colors.get("primary", default_colors["primary"]),
         
@@ -155,15 +157,17 @@ def get_theme_colors(style=None):
         # On background (text on background color)
         "ON_BACKGROUND": theme_colors.get("fg", default_colors["fg"]),
     }
+    
+    return colors
 
-# Padding and spacing
+# Padding ve spacing sabitleri
 PADDING = {
     "SMALL": 5,
     "MEDIUM": 10,
     "LARGE": 15,
 }
 
-# Font configurations
+# Font yapılandırmaları
 FONTS = {
     "DEFAULT": ("Helvetica", 10),
     "HEADER": ("Helvetica", 12, "bold"),
