@@ -3,8 +3,12 @@ Toolbar module for the PDF Editor application.
 This is the main toolbar class that uses the modular tab implementations.
 """
 import tkinter as tk
-from tkinter import ttk
-
+from tkinter import ttk, filedialog, messagebox
+import ttkbootstrap as ttk
+from tkinter import filedialog
+from core.pdf_manager import PDFManager
+from PIL import Image
+import os
 from gui.toolbar_style import apply_toolbar_style
 from gui.toolbar_tabs import FileTab, PageTab, EditTab, ToolsTab, ViewTab, HelpTab
 

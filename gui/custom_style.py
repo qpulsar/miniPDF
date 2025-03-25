@@ -29,7 +29,7 @@ def apply_custom_style(root):
                 "background": COLORS["PRIMARY"],
                 "foreground": COLORS["ON_PRIMARY"],
                 "padding": (PADDING["MEDIUM"], PADDING["SMALL"]),
-                "font": FONTS["DEFAULT"]
+                "font": FONTS["DEFAULT"],
             }
         },
         "TFrame": {

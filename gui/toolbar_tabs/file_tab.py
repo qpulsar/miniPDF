@@ -8,6 +8,9 @@ import os
 from gui.toolbar_tabs.base_tab import BaseTab
 from gui.utils import create_icon_button
 from gui.utils.messages import INFO_TITLE
+from core.text_extraction import TextExtractor
+from gui.dialogs.export_image_dialog import ExportImageDialog
+from gui.dialogs.text_export_dialog import TextExportDialog
 
 class FileTab(BaseTab):
     """File tab for the toolbar."""
@@ -21,6 +24,7 @@ class FileTab(BaseTab):
             app: Main application instance
         """
         super().__init__(parent, app)
+        self.text_extractor = TextExtractor()
         self.setup_ui()
     
     def setup_ui(self):
@@ -115,13 +119,147 @@ class FileTab(BaseTab):
         ).pack(side=tk.LEFT, padx=2, pady=2)
     
     def _export_as_image(self):
-        """Export the current PDF page as an image."""
-        self.app.export_as_image()
-    
+        """Export PDF pages as images."""
+        if not self.check_pdf_open():
+            return
+            
+        # Dışa aktarma ayarları dialogunu göster
+        dialog = ExportImageDialog(self.app.root, len(self.app.pdf_manager.doc))
+        self.app.root.wait_window(dialog)
+        
+        if dialog.result is None:  # İptal edildi
+            return
+            
+        pages, settings = dialog.result
+        
+        # Tek sayfa için geçerli sayfayı kullan
+        if pages is None:
+            pages = [self.app.preview.current_page_index]
+        
+        # Kaydetme yeri seç
+        if settings['output_mode'] == 'single':
+            file_path = filedialog.asksaveasfilename(
+                defaultextension=f".{settings['format']}",
+                filetypes=[
+                    ("PNG Files", "*.png"),
+                    ("JPEG Files", "*.jpg;*.jpeg"),
+                    ("All Files", "*.*")
+                ]
+            )
+            if not file_path:
+                return
+            output_paths = [file_path]
+            
+        else:  # multiple
+            output_dir = filedialog.askdirectory(
+                title="Görüntüleri Kaydetmek İçin Klasör Seçin"
+            )
+            if not output_dir:
+                return
+                
+            # Her sayfa için dosya yolu oluştur
+            output_paths = [
+                os.path.join(output_dir, f"sayfa_{page + 1}.{settings['format']}")
+                for page in pages
+            ]
+        
+        try:
+            success_count = 0
+            error_messages = []
+            
+            # Her sayfayı dışa aktar
+            for i, page_num in enumerate(pages):
+                try:
+                    page = self.app.pdf_manager.doc[page_num]
+                    success = self.text_extractor.save_page_as_image(
+                        page,
+                        output_paths[i],
+                        zoom=settings['zoom']
+                    )
+                    
+                    if success:
+                        success_count += 1
+                    else:
+                        error_messages.append(f"Sayfa {page_num + 1} kaydedilemedi")
+                        
+                except Exception as e:
+                    error_messages.append(f"Sayfa {page_num + 1}: {str(e)}")
+            
+            # Sonucu göster
+            total_count = len(pages)
+            if success_count == total_count:
+                messagebox.showinfo(
+                    "Başarılı",
+                    f"Tüm sayfalar başarıyla kaydedildi ({success_count} sayfa)"
+                )
+            elif success_count > 0:
+                messagebox.showwarning(
+                    "Kısmi Başarı",
+                    f"{total_count} sayfadan {success_count} tanesi kaydedildi.\n"
+                    f"Hatalar:\n" + "\n".join(error_messages)
+                )
+            else:
+                messagebox.showerror(
+                    "Hata",
+                    f"Hiçbir sayfa kaydedilemedi.\nHatalar:\n" + "\n".join(error_messages)
+                )
+                
+        except Exception as e:
+            messagebox.showerror("Hata", f"Görüntü kaydedilirken hata oluştu:\n{str(e)}")
+
     def _export_as_text(self):
-        """Export the PDF as text."""
-        self.app.export_as_text()
-    
+        """Export PDF page as text."""
+        if not self.check_pdf_open():
+            return
+            
+        try:
+            # Geçerli sayfanın metnini al
+            text = self.text_extractor.extract_text(
+                self.app.pdf_manager.doc,
+                self.app.preview.current_page_index
+            )
+            
+            # Text export dialogunu göster
+            dialog = TextExportDialog(self.app.root, text)
+            self.app.root.wait_window(dialog)
+            
+            if dialog.result is None:  # İptal edildi
+                return
+                
+            # Kaydetme yeri seç
+            file_path = filedialog.asksaveasfilename(
+                defaultextension=".txt",
+                filetypes=[
+                    ("Text Files", "*.txt"),
+                    ("All Files", "*.*")
+                ]
+            )
+            
+            if not file_path:  # İptal edildi
+                return
+                
+            # Metni dosyaya kaydet
+            try:
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(dialog.result)
+                    
+                messagebox.showinfo(
+                    "Başarılı",
+                    "Metin başarıyla kaydedildi."
+                )
+                
+            except Exception as e:
+                messagebox.showerror(
+                    "Hata",
+                    f"Metin kaydedilirken hata oluştu:\n{str(e)}"
+                )
+                
+        except Exception as e:
+            messagebox.showerror(
+                "Hata",
+                f"Metin çıkartılırken hata oluştu:\n{str(e)}"
+            )
+
     def _print_pdf(self):
         """Print the current PDF."""
         if not self.check_pdf_open():
@@ -136,3 +274,10 @@ class FileTab(BaseTab):
     def _close_application(self):
         """Close the application."""
         self.app.root.quit()
+
+    def check_pdf_open(self):
+        """Check if a PDF is currently open."""
+        if not self.app.pdf_manager.doc:
+            messagebox.showinfo("Bilgi", "Önce bir PDF dosyası açmalısınız.")
+            return False
+        return True
