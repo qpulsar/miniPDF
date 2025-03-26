@@ -11,7 +11,7 @@ class ExportImageDialog(BaseDialog):
     def __init__(self, parent, total_pages):
         super().__init__(
             parent,
-            title="Görüntüye Ver",
+            title="Resim olarak kaydet",
             geometry="500x600"
         )
         
@@ -101,7 +101,7 @@ class ExportImageDialog(BaseDialog):
         # Zoom ayarı
         zoom_frame = ttk.Frame(settings_frame)
         zoom_frame.pack(fill=tk.X, pady=5)
-        ttk.Label(zoom_frame, text="Sayfaya Zum:").pack(side=tk.LEFT)
+        ttk.Label(zoom_frame, text="Sayfaya Yakınlaştırma:").pack(side=tk.LEFT)
         zoom_spin = ttk.Spinbox(
             zoom_frame,
             from_=10,
@@ -114,7 +114,7 @@ class ExportImageDialog(BaseDialog):
         ttk.Label(zoom_frame, text="%").pack(side=tk.LEFT)
         
         # Çıktı Modu
-        output_frame = ttk.LabelFrame(main_frame, text="Verme Modu", padding="5")
+        output_frame = ttk.LabelFrame(main_frame, text="Resim formatı", padding="5")
         output_frame.pack(fill=tk.X, pady=(0, 10))
         
         ttk.Radiobutton(
@@ -132,7 +132,7 @@ class ExportImageDialog(BaseDialog):
         ).pack(anchor=tk.W)
         
         # Butonlar
-        btn_frame = self.create_buttons_frame()
+        btn_frame = self.create_buttons_frame(parent=main_frame)
         
         self.add_button(
             btn_frame,
@@ -143,7 +143,7 @@ class ExportImageDialog(BaseDialog):
         
         self.add_button(
             btn_frame,
-            text="Ver...",
+            text="Kaydet",
             command=self.ok,
             style="primary"
         )

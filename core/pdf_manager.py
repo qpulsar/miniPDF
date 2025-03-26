@@ -6,6 +6,7 @@ import os
 import tempfile
 import shutil
 import logging
+import time
 from contextlib import contextmanager
 
 # Logging ayarları
@@ -136,44 +137,133 @@ class PDFManager:
             fd, temp_path = tempfile.mkstemp(suffix=".pdf")
             os.close(fd)
             
-            # Save to the temporary file
-            self.doc.save(temp_path)
+            try:
+                # Save to the temporary file with cleanup options
+                # garbage=4: agresif PDF temizleme (xref tablosunu yeniden oluşturur)
+                # deflate=True: içeriği sıkıştırır ve dosya boyutunu küçültür
+                self.doc.save(temp_path, garbage=4, deflate=True, clean=True)
+            except Exception as e:
+                logger.warning(f"PDF kaydetme hatası, onarım deneniyor: {e}")
+                # Onarım için yeni bir belge oluşturup sayfaları kopyalama
+                try:
+                    repair_doc = fitz.open()
+                    for page_num in range(len(self.doc)):
+                        try:
+                            repair_doc.insert_pdf(self.doc, from_page=page_num, to_page=page_num)
+                        except Exception as page_error:
+                            logger.warning(f"Sayfa {page_num} kopyalanamadı: {page_error}")
+                    repair_doc.save(temp_path, garbage=4, deflate=True, clean=True)
+                    repair_doc.close()
+                except Exception as repair_error:
+                    logger.error(f"PDF onarım hatası: {repair_error}")
+                    if os.path.exists(temp_path):
+                        os.unlink(temp_path)
+                    raise repair_error
             
-            # Create a backup of the original file if it exists
-            backup_path = None
+            # Hedef dosya yolunu kontrol et
             if os.path.exists(current_path):
+                # Dosya zaten varsa, yedek oluştur
                 backup_fd, backup_path = tempfile.mkstemp(suffix=".pdf.bak")
                 os.close(backup_fd)
-                shutil.copy2(current_path, backup_path)
+                
+                # Yedekleme işlemi - dosya kullanımda hatası için yeniden deneme
+                max_attempts = 3
+                for attempt in range(max_attempts):
+                    try:
+                        shutil.copy2(current_path, backup_path)
+                        break
+                    except PermissionError as pe:
+                        if attempt < max_attempts - 1:
+                            logger.warning(f"Dosya kullanımda, {attempt+1}. deneme: {pe}")
+                            time.sleep(1)  # Kısa bir bekleme
+                        else:
+                            logger.error(f"Yedekleme başarısız, dosya kullanımda: {pe}")
+                            if os.path.exists(temp_path):
+                                os.unlink(temp_path)
+                            if os.path.exists(backup_path):
+                                os.unlink(backup_path)
+                            return False
+            else:
+                backup_path = None
             
             try:
-                # Close the document
+                # Belgeyi kapatmadan önce referansını saklayalım
+                doc_path = self.doc.name
+                
+                # Belgeyi şimdi kapatıyoruz
                 self.doc.close()
                 
-                # Move the temporary file to the destination
-                shutil.move(temp_path, current_path)
+                # Hedef dosyaya taşıma - dosya kullanımda hatası için yeniden deneme
+                max_attempts = 3
+                for attempt in range(max_attempts):
+                    try:
+                        # Hedef dosya varsa ve kullanımdaysa, alternatif strateji kullan
+                        if os.path.exists(current_path):
+                            # Önce hedef dosyayı silmeyi dene
+                            try:
+                                os.unlink(current_path)
+                            except PermissionError:
+                                # Dosya silinemiyorsa, farklı bir isimle kaydet
+                                alt_path = f"{current_path}.new"
+                                shutil.move(temp_path, alt_path)
+                                temp_path = alt_path
+                                # Dosya kullanımda uyarısı
+                                logger.warning(f"Hedef dosya kullanımda, alternatif kaydetme: {alt_path}")
+                        
+                        # Geçici dosyayı hedefe taşı
+                        shutil.move(temp_path, current_path)
+                        break
+                    except PermissionError as pe:
+                        if attempt < max_attempts - 1:
+                            logger.warning(f"Dosya taşıma hatası, {attempt+1}. deneme: {pe}")
+                            time.sleep(1)  # Kısa bir bekleme
+                        else:
+                            logger.error(f"Dosya taşıma başarısız, dosya kullanımda: {pe}")
+                            # Yedek varsa geri yükle
+                            if backup_path and os.path.exists(backup_path):
+                                self.doc = fitz.open(backup_path)
+                                if os.path.exists(temp_path):
+                                    os.unlink(temp_path)
+                            return False
                 
-                # Reopen the document
+                # Belgeyi yeniden aç
                 self.doc = fitz.open(current_path)
                 
-                # Remove the backup if everything went well
+                # İşlem başarılıysa yedeği sil
                 if backup_path and os.path.exists(backup_path):
-                    os.unlink(backup_path)
+                    try:
+                        os.unlink(backup_path)
+                    except:
+                        pass  # Yedek silinmezse önemli değil
                 
                 if save_path:  # Update file path if saving to a new location
                     self.file_path = save_path
                 
                 return True
             except Exception as e:
-                # If something went wrong and we have a backup, restore it
+                # Hata durumunda yedeği geri yükle
                 if backup_path and os.path.exists(backup_path):
-                    if os.path.exists(current_path):
-                        os.unlink(current_path)
-                    shutil.move(backup_path, current_path)
-                    
-                # Reopen the original document
+                    try:
+                        if os.path.exists(current_path):
+                            os.unlink(current_path)
+                        shutil.move(backup_path, current_path)
+                    except:
+                        logger.error(f"Yedek geri yükleme hatası: {e}")
+                
+                # Orijinal belgeyi yeniden açmayı dene
                 if self.file_path:
-                    self.doc = fitz.open(self.file_path)
+                    try:
+                        self.doc = fitz.open(self.file_path)
+                    except Exception as reopen_error:
+                        logger.error(f"Orijinal belgeyi yeniden açma hatası: {reopen_error}")
+                
+                # Geçici dosyaları temizle
+                for path in [temp_path, backup_path]:
+                    if path and os.path.exists(path):
+                        try:
+                            os.unlink(path)
+                        except:
+                            pass
                 
                 raise e
                 

@@ -64,17 +64,30 @@ class BaseDialog:
         """
         return create_text_area(parent, **kwargs)
     
-    def create_buttons_frame(self, **kwargs):
+    def create_buttons_frame(self, parent=None, **kwargs):
         """
         Create a frame for action buttons.
         
         Args:
+            parent: Parent widget (default: None, which uses self.dialog)
             **kwargs: Additional keyword arguments for the frame
             
         Returns:
             ttk.Frame: The created frame
         """
-        return create_buttons_frame(self.dialog, **kwargs)
+        # Eğer parent belirtilmemişse, self.dialog kullan
+        if parent is None:
+            parent = self.dialog
+        
+        # Düğme çerçevesini oluştur
+        frame = ttk.Frame(parent, **kwargs)
+        
+        # Otomatik olarak pack et (varsayılan olarak)
+        auto_pack = kwargs.pop('auto_pack', True) if 'auto_pack' in kwargs else True
+        if auto_pack:
+            frame.pack(fill=tk.X, pady=(10, 0), padx=10)
+        
+        return frame
     
     def add_button(self, parent, text, command, side=tk.LEFT, **kwargs):
         """

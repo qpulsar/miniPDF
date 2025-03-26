@@ -5,12 +5,16 @@ import tkinter as tk
 from tkinter import messagebox, filedialog
 import ttkbootstrap as ttk
 import os
-from gui.toolbar_tabs.base_tab import BaseTab
-from gui.utils import create_icon_button
-from gui.utils.messages import INFO_TITLE
+import tempfile
+import shutil
+from datetime import datetime
 from core.text_extraction import TextExtractor
 from gui.dialogs.export_image_dialog import ExportImageDialog
 from gui.dialogs.text_export_dialog import TextExportDialog
+from gui.dialogs.print_dialog import PrintDialog
+from gui.utils.messages import *
+from gui.toolbar_tabs.base_tab import BaseTab
+from gui.utils import create_icon_button
 
 class FileTab(BaseTab):
     """File tab for the toolbar."""
@@ -125,7 +129,7 @@ class FileTab(BaseTab):
             
         # Dışa aktarma ayarları dialogunu göster
         dialog = ExportImageDialog(self.app.root, len(self.app.pdf_manager.doc))
-        self.app.root.wait_window(dialog)
+        dialog.show()
         
         if dialog.result is None:  # İptal edildi
             return
@@ -221,7 +225,7 @@ class FileTab(BaseTab):
             
             # Text export dialogunu göster
             dialog = TextExportDialog(self.app.root, text)
-            self.app.root.wait_window(dialog)
+            dialog.show()
             
             if dialog.result is None:  # İptal edildi
                 return
@@ -231,6 +235,7 @@ class FileTab(BaseTab):
                 defaultextension=".txt",
                 filetypes=[
                     ("Text Files", "*.txt"),
+                    ("Markdown Files", "*.md"),
                     ("All Files", "*.*")
                 ]
             )
@@ -240,12 +245,35 @@ class FileTab(BaseTab):
                 
             # Metni dosyaya kaydet
             try:
+                # Markdown formatı için basit düzenleme
+                if file_path.lower().endswith('.md'):
+                    # PDF'ten çıkarılan metni Markdown formatına dönüştür
+                    lines = dialog.result.split('\n')
+                    md_text = ""
+                    
+                    # Başlık ekle
+                    md_text += "# PDF'ten Çıkarılan Metin\n\n"
+                    
+                    # İçeriği ekle
+                    for line in lines:
+                        if line.strip():
+                            # Boş olmayan satırlar için paragraf formatı
+                            md_text += line.strip() + "\n\n"
+                    
+                    # Altbilgi ekle
+                    md_text += "---\n"
+                    md_text += f"*Bu metin {self.app.pdf_manager.file_path} dosyasından {datetime.now().strftime('%Y-%m-%d %H:%M')} tarihinde çıkarılmıştır.*"
+                    
+                    content = md_text
+                else:
+                    content = dialog.result
+                
                 with open(file_path, 'w', encoding='utf-8') as f:
-                    f.write(dialog.result)
+                    f.write(content)
                     
                 messagebox.showinfo(
                     "Başarılı",
-                    "Metin başarıyla kaydedildi."
+                    "Metin başarıyla kaydedildi!"
                 )
                 
             except Exception as e:
@@ -259,17 +287,30 @@ class FileTab(BaseTab):
                 "Hata",
                 f"Metin çıkartılırken hata oluştu:\n{str(e)}"
             )
-
+    
     def _print_pdf(self):
         """Print the current PDF."""
         if not self.check_pdf_open():
             return
         
-        # On macOS, use the default PDF viewer to print
-        if os.name == "posix":
-            self.app.open_with_default_app()
-        else:
-            self.show_not_implemented()
+        try:
+            # Yazdırma dialogunu göster
+            dialog = PrintDialog(
+                self.app.root, 
+                self.app.pdf_manager,
+                self.app.preview.current_page_index
+            )
+            dialog.show()
+            
+            # Sonucu kontrol et
+            if dialog.result:
+                self.app.status_var.set("Yazdırma işlemi başlatıldı")
+            
+        except Exception as e:
+            messagebox.showerror(
+                "Hata",
+                f"Yazdırma işlemi sırasında hata oluştu: {str(e)}"
+            )
     
     def _close_application(self):
         """Close the application."""

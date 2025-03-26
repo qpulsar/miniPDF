@@ -9,7 +9,7 @@ APP_VERSION = "1.0.0"
 # GUI settings
 WINDOW_WIDTH = 1280
 WINDOW_HEIGHT = 720
-THEME = "lumen"  # ttkbootstrap teması
+THEME = "morph"  # ttkbootstrap teması
 
 # PDF settings
 DEFAULT_ZOOM = 100  # Default zoom level (percentage)

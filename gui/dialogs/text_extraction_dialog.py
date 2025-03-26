@@ -4,6 +4,7 @@ Text extraction dialog for the miniPDF application.
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from gui.dialogs.base_dialog import BaseDialog
+from datetime import datetime
 
 class TextExtractionDialog(BaseDialog):
     """Dialog for extracting text from PDF documents."""
@@ -65,8 +66,7 @@ class TextExtractionDialog(BaseDialog):
         self.text_area, _ = self.create_text_area(text_frame)
         
         # Create a frame for action buttons
-        action_frame = self.create_buttons_frame()
-        action_frame.pack(fill=tk.X, padx=10, pady=10)
+        action_frame = self.create_buttons_frame(parent=self.dialog)
         
         # Extract button
         self.add_button(
@@ -126,13 +126,38 @@ class TextExtractionDialog(BaseDialog):
         save_path = filedialog.asksaveasfilename(
             title="Çıkartılan Metni Kaydet",
             defaultextension=".txt",
-            filetypes=[("Metin Dosyaları", "*.txt"), ("Tüm Dosyalar", "*.*")]
+            filetypes=[
+                ("Metin Dosyaları", "*.txt"), 
+                ("Markdown Dosyaları", "*.md"),
+                ("Tüm Dosyalar", "*.*")
+            ]
         )
         
         if not save_path:
             return
         
         try:
+            # Markdown formatı için basit düzenleme
+            if save_path.lower().endswith('.md'):
+                # PDF'ten çıkarılan metni Markdown formatına dönüştür
+                lines = text.split('\n')
+                md_text = ""
+                
+                # Başlık ekle
+                md_text += "# PDF'ten Çıkarılan Metin\n\n"
+                
+                # İçeriği ekle
+                for line in lines:
+                    if line.strip():
+                        # Boş olmayan satırlar için paragraf formatı
+                        md_text += line.strip() + "\n\n"
+                
+                # Altbilgi ekle
+                md_text += "---\n"
+                md_text += f"*Bu metin {self.app.pdf_manager.file_path} dosyasından {datetime.now().strftime('%Y-%m-%d %H:%M')} tarihinde çıkarılmıştır.*"
+                
+                text = md_text
+            
             with open(save_path, 'w', encoding='utf-8') as f:
                 f.write(text)
             

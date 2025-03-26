@@ -30,8 +30,12 @@ def create_text_area(parent, **kwargs):
     Returns:
         tuple: (text_area, scrollbar)
     """
+    # Eğer wrap parametresi verilmemişse, varsayılan olarak WORD kullan
+    if 'wrap' not in kwargs:
+        kwargs['wrap'] = tk.WORD
+    
     # Create a text area with a scrollbar
-    text_area = tk.Text(parent, wrap=tk.WORD, **kwargs)
+    text_area = tk.Text(parent, **kwargs)
     scrollbar = ttk.Scrollbar(parent, orient=tk.VERTICAL, command=text_area.yview)
     text_area.configure(yscrollcommand=scrollbar.set)
     
