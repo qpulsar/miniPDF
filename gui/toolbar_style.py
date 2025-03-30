@@ -1,84 +1,29 @@
 """
-Custom styling for the toolbar in the PDF Editor application.
+Toolbar styling for the PDF Editor application.
 """
-import ttkbootstrap as ttk
-from theme import get_theme_colors
+from PyQt6.QtWidgets import QToolBar
+from PyQt6.QtCore import Qt
+import logging
 
-def apply_toolbar_style(toolbar, style):
-    """
-    Apply custom styling to the toolbar
+# Logging settings
+logger = logging.getLogger(__name__)
+
+def apply_toolbar_style(toolbar):
+    """Apply custom styling to the toolbar.
     
     Args:
-        toolbar: The toolbar instance
-        style: The ttk style object
+        toolbar: QToolBar instance
     """
-    # Get colors from the current theme
-    colors = get_theme_colors(style)
-    
-    # Configure the TButton style
-    style.configure(
-        "TButton",
-        background=colors["PRIMARY"],
-        foreground=colors["ON_PRIMARY"]
-    )
-    
-    # Configure important buttons style
-    style.configure(
-        "Accent.TButton",
-        background=colors["ACCENT"],
-        foreground=colors["ON_PRIMARY"]
-    )
-    
-    # Configure the TFrame style
-    style.configure(
-        "TFrame",
-        background=colors["BACKGROUND"]
-    )
-    
-    # Configure the TLabel style
-    style.configure(
-        "TLabel",
-        background=colors["BACKGROUND"],
-        foreground=colors["TEXT"]
-    )
-    
-    # Configure the TNotebook style
-    style.configure(
-        "TNotebook",
-        background=colors["BACKGROUND"]
-    )
-    
-    # Configure the TNotebook.Tab style
-    style.configure(
-        "TNotebook.Tab",
-        background=colors["PRIMARY"],
-        foreground=colors["ON_PRIMARY"]
-    )
-    
-    # Configure selected tab
-    style.map(
-        "TNotebook.Tab",
-        background=[("selected", colors["HIGHLIGHT"])],
-        foreground=[("selected", colors["TEXT"])]
-    )
-    
-    # Configure the TLabelframe style
-    style.configure(
-        "TLabelframe",
-        background=colors["BACKGROUND"],
-        foreground=colors["TEXT"]
-    )
-    
-    # Configure the TLabelframe.Label style
-    style.configure(
-        "TLabelframe.Label",
-        background=colors["BACKGROUND"],
-        foreground=colors["TEXT"]
-    )
-    
-    # Apply style to important buttons
-    if hasattr(toolbar, 'save_button'):
-        toolbar.save_button.configure(style="Accent.TButton")
-    
-    if hasattr(toolbar, 'delete_page_button'):
-        toolbar.delete_page_button.configure(style="Accent.TButton")
+    try:
+        # Set toolbar properties
+        toolbar.setMovable(False)
+        toolbar.setFloatable(False)
+        toolbar.setAllowedAreas(Qt.ToolBarArea.TopToolBarArea)
+        
+        # Set minimum height for the ribbon
+        toolbar.setMinimumHeight(110)
+        
+    except Exception as e:
+        logger.error(f"Error applying toolbar style: {e}")
+        # If styling fails, ensure basic functionality
+        toolbar.setMovable(False)
