@@ -45,11 +45,15 @@ class PDFEditorApp(QMainWindow):
         
         # Create sidebar for page list
         self.sidebar = Sidebar(self)
-        content_layout.addWidget(self.sidebar)
+        self.sidebar.setFixedWidth(150)
+        content_layout.insertWidget(0, self.sidebar)
         
         # Create preview area
         self.preview = PDFPreview(self)
         content_layout.addWidget(self.preview)
+        
+        # Connect signals
+        self.sidebar.page_selected.connect(self.preview.show_page)
         
         # Set content layout stretch factors
         content_layout.setStretch(0, 1)  # Sidebar
