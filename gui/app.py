@@ -2,12 +2,13 @@
 Main application window for the PDF Editor.
 """
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-                           QFileDialog, QMessageBox, QStatusBar)
+                           QFileDialog, QMessageBox, QStatusBar, QMenuBar)
 from PyQt6.QtCore import Qt
 from .toolbar import Toolbar
 from .sidebar import Sidebar
 from .preview import PDFPreview
 from core.pdf_manager import PDFManager
+from .menu import MenuBar
 
 class PDFEditorApp(QMainWindow):
     """Main window class for the PDF Editor application."""
@@ -28,6 +29,10 @@ class PDFEditorApp(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout(central_widget)
+        
+        # Create menu bar
+        self.menu_bar = MenuBar(self)
+        self.setMenuBar(self.menu_bar)
         
         # Create toolbar
         self.toolbar = Toolbar(self)
