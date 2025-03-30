@@ -42,8 +42,6 @@ scipy
 simplejson
 six
 traits
-ttkbootstrap
-ttkthemes
 typing_extensions
 tzdata
 urllib3

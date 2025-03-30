@@ -1,122 +1,108 @@
 """
-Implementation file for applying the custom pastel minimalist style to the miniPDF application.
+Implementation file for applying the custom Material Design style to the miniPDF application.
 """
-import tkinter as tk
-from tkinter import ttk
-import sys
-import ttkbootstrap as ttk
-from theme import get_theme_colors
+from PyQt6.QtWidgets import QWidget, QPushButton, QFrame, QLabel, QTabWidget, QTabBar, QToolBar, QToolButton, QSeparator, QTreeWidget, QTreeWidgetItem, QAbstractItemView
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont, QColor
+from theme import COLORS, FONTS, PADDING
+import logging
 
-def apply_style_to_widget(widget, colors=None):
-    """
-    Recursively apply styling to a widget and all its children
+# Logging settings
+logger = logging.getLogger(__name__)
+
+def apply_style_to_widget(widget):
+    """Apply styling to a widget.
     
     Args:
-        widget: The tkinter widget to style
-        colors: Dictionary with color definitions, if None will be fetched from theme
+        widget: QWidget instance to style
     """
-    if colors is None:
-        style = ttk.Style()
-        colors = get_theme_colors(style)
-    
-    widget_class = widget.winfo_class()
-    
-    if widget_class in ('TFrame', 'Frame'):
-        widget.configure(background=colors["BACKGROUND"])
-    
-    elif widget_class in ('TLabel', 'Label'):
-        widget.configure(background=colors["BACKGROUND"], foreground=colors["TEXT"])
-    
-    elif widget_class in ('TButton', 'Button'):
-        widget.configure(background=colors["PRIMARY"], foreground=colors["ON_PRIMARY"])
-    
-    elif widget_class == 'TNotebook':
-        style = ttk.Style()
-        style.configure('TNotebook', background=colors["BACKGROUND"])
-        style.configure('TNotebook.Tab', background=colors["PRIMARY"], foreground=colors["ON_PRIMARY"])
-        style.map('TNotebook.Tab', 
-                 background=[('selected', colors["HIGHLIGHT"])],
-                 foreground=[('selected', colors["TEXT"])])
-    
-    elif widget_class in ('TLabelframe', 'Labelframe'):
-        widget.configure(background=colors["BACKGROUND"])
+    try:
+        # Set font
+        widget.setFont(FONTS["DEFAULT"])
         
-    elif widget_class == 'Toplevel':
-        widget.configure(background=colors["BACKGROUND"])
-    
-    elif widget_class == 'Canvas':
-        widget.configure(background=colors["BACKGROUND"])
-    
-    # Apply style to all children
-    for child in widget.winfo_children():
-        apply_style_to_widget(child, colors)
+        # Set padding
+        widget.setContentsMargins(
+            PADDING["MEDIUM"],
+            PADDING["MEDIUM"],
+            PADDING["MEDIUM"],
+            PADDING["MEDIUM"]
+        )
+        
+        # Set background color
+        widget.setStyleSheet(f"background-color: {COLORS['BACKGROUND']};")
+        
+        # Set text color
+        if isinstance(widget, QLabel):
+            widget.setStyleSheet(f"background-color: {COLORS['BACKGROUND']}; color: {COLORS['TEXT']};")
+        
+        # Set button styles
+        if isinstance(widget, QPushButton):
+            widget.setStyleSheet(f"background-color: {COLORS['PRIMARY']}; color: {COLORS['ON_PRIMARY']};")
+        
+        # Set tab widget styles
+        if isinstance(widget, QTabWidget):
+            widget.setStyleSheet(f"background-color: {COLORS['BACKGROUND']};")
+            tab_bar = widget.tabBar()
+            tab_bar.setStyleSheet(f"background-color: {COLORS['PRIMARY']}; color: {COLORS['ON_PRIMARY']};")
+            tab_bar.setTabTextColor(0, QColor(COLORS['ON_PRIMARY']))
+        
+        # Set toolbar styles
+        if isinstance(widget, QToolBar):
+            widget.setStyleSheet(f"background-color: {COLORS['BACKGROUND']};")
+        
+        # Set tool button styles
+        if isinstance(widget, QToolButton):
+            widget.setStyleSheet(f"background-color: {COLORS['PRIMARY']}; color: {COLORS['ON_PRIMARY']};")
+        
+        # Set separator styles
+        if isinstance(widget, QSeparator):
+            widget.setStyleSheet(f"background-color: {COLORS['BORDER']};")
+        
+        # Set tree widget styles
+        if isinstance(widget, QTreeWidget):
+            widget.setStyleSheet(f"background-color: {COLORS['BACKGROUND']}; color: {COLORS['TEXT']};")
+            header = widget.header()
+            header.setStyleSheet(f"background-color: {COLORS['PRIMARY']}; color: {COLORS['ON_PRIMARY']};")
+        
+    except Exception as e:
+        logger.error(f"Error applying style to widget: {e}")
 
-def style_important_button(button, colors=None):
-    """
-    Apply accent styling to important buttons like delete or save
+def style_important_button(button):
+    """Apply accent styling to important buttons.
     
     Args:
-        button: The button widget to style
-        colors: Dictionary with color definitions, if None will be fetched from theme
+        button: QPushButton instance to style
     """
-    if colors is None:
-        style = ttk.Style()
-        colors = get_theme_colors(style)
-    
-    button.configure(background=colors["ACCENT"])
+    try:
+        button.setStyleSheet(f"background-color: {COLORS['ACCENT']}; color: {COLORS['ON_PRIMARY']};")
+        
+    except Exception as e:
+        logger.error(f"Error styling important button: {e}")
 
 def apply_style_to_app(app):
-    """
-    Apply the custom style to the entire application
+    """Apply the custom style to the entire application.
     
     Args:
-        app: The main application instance
+        app: Main application instance
     """
-    root = app.root
-    
-    # Configure ttk style
-    style = ttk.Style()
-    
-    # Get colors from the current theme
-    colors = get_theme_colors(style)
-    
-    style.configure('TFrame', background=colors["BACKGROUND"])
-    style.configure('TLabel', background=colors["BACKGROUND"], foreground=colors["TEXT"])
-    style.configure('TButton', background=colors["PRIMARY"], foreground=colors["ON_PRIMARY"])
-    style.configure('Accent.TButton', background=colors["ACCENT"], foreground=colors["ON_PRIMARY"])
-    style.configure('TNotebook', background=colors["BACKGROUND"])
-    style.configure('TNotebook.Tab', background=colors["PRIMARY"], foreground=colors["ON_PRIMARY"])
-    style.map('TNotebook.Tab', 
-             background=[('selected', colors["HIGHLIGHT"])],
-             foreground=[('selected', colors["TEXT"])])
-    style.configure('TLabelframe', background=colors["BACKGROUND"], foreground=colors["TEXT"])
-    style.configure('TLabelframe.Label', background=colors["BACKGROUND"], foreground=colors["TEXT"])
-    style.configure('Treeview', background=colors["BACKGROUND"], fieldbackground=colors["BACKGROUND"], foreground=colors["TEXT"])
-    style.configure('Treeview.Heading', background=colors["PRIMARY"], foreground=colors["ON_PRIMARY"])
-    style.configure('TSeparator', background=colors["BORDER"])
-    
-    # Apply style to all widgets
-    apply_style_to_widget(root, colors)
-    
-    # Style important buttons
-    if hasattr(app, 'toolbar'):
-        if hasattr(app.toolbar, 'save_button'):
-            style_important_button(app.toolbar.save_button, colors)
-        if hasattr(app.toolbar, 'delete_page_button'):
-            style_important_button(app.toolbar.delete_page_button, colors)
-    
-    # Configure root window
-    root.configure(background=colors["BACKGROUND"])
+    try:
+        # Apply style to all widgets
+        for widget in app.findChildren(QWidget):
+            apply_style_to_widget(widget)
+            
+    except Exception as e:
+        logger.error(f"Error applying style to app: {e}")
 
 def apply_style_to_dialog(dialog):
-    """
-    Apply the custom style to a dialog window
+    """Apply the custom style to a dialog window.
     
     Args:
-        dialog: The dialog window instance
+        dialog: Dialog window instance
     """
-    style = ttk.Style()
-    colors = get_theme_colors(style)
-    
-    dialog.configure(background=colors["BACKGROUND"])
-    apply_style_to_widget(dialog, colors)
+    try:
+        # Apply style to all widgets in dialog
+        for widget in dialog.findChildren(QWidget):
+            apply_style_to_widget(widget)
+            
+    except Exception as e:
+        logger.error(f"Error applying style to dialog: {e}")
