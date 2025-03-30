@@ -16,8 +16,6 @@ class BaseTab(QWidget):
         """
         super().__init__(parent)
         self.app = app
-        self.layout = QVBoxLayout(self)
-        self.setLayout(self.layout)
         
     def create_frame(self, name, title):
         """Create a labeled frame.
@@ -27,28 +25,19 @@ class BaseTab(QWidget):
             title (str): Frame title
             
         Returns:
-            QWidget: Created frame content area
+            QFrame: The created frame
         """
         frame = QFrame(self)
         frame.setObjectName(name)
-        frame.setFrameStyle(QFrame.Shape.StyledPanel | QFrame.Shadow.Raised)
+        frame.setFrameStyle(QFrame.Shape.Box | QFrame.Shadow.Sunken)
         
-        frame_layout = QVBoxLayout(frame)
+        layout = QVBoxLayout(frame)
         
-        # Add title
         title_label = QLabel(title)
-        title_label.setObjectName(f"{name}_title")
-        frame_layout.addWidget(title_label)
+        layout.addWidget(title_label)
         
-        # Add content area
-        content = QWidget()
-        content_layout = QHBoxLayout(content)
-        content.setLayout(content_layout)
-        frame_layout.addWidget(content)
+        return frame
         
-        self.layout.addWidget(frame)
-        return content
-    
     def add_button(self, frame, text, command):
         """
         Add a button to a frame.

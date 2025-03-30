@@ -2,10 +2,10 @@
 PDF page preview module.
 """
 import sys
+import fitz  # PyMuPDF
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QScrollArea, QSlider, QHBoxLayout
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap, QImage
-import fitz
 
 class PDFPreview(QScrollArea):
     """Widget for displaying PDF page previews."""
@@ -94,6 +94,3 @@ class PDFPreview(QScrollArea):
         self.preview_label.clear()
         self.current_image = None
         self.current_page_index = None
-
-# Import here to avoid circular import issues
-import fitz  # PyMuPDF

@@ -3,7 +3,8 @@ Main application GUI for the PDF Editor.
 """
 import sys
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, 
-                           QVBoxLayout, QHBoxLayout, QFileDialog, QMessageBox)
+                           QVBoxLayout, QHBoxLayout, QFileDialog, QMessageBox,
+                           QStatusBar)
 from PyQt6.QtCore import Qt
 from qt_material import apply_stylesheet
 
@@ -60,6 +61,11 @@ class PDFEditorApp(QMainWindow):
         content_layout.setStretch(0, 1)  # Sidebar
         content_layout.setStretch(1, 4)  # Preview
         
+        # Create status bar
+        self.status_bar = QStatusBar()
+        self.setStatusBar(self.status_bar)
+        self.status_bar.showMessage("Ready")
+        
     def open_pdf(self):
         """Open a PDF file."""
         file_path = self.get_open_filename("Open PDF File", [("PDF Files", "*.pdf")])
@@ -68,7 +74,7 @@ class PDFEditorApp(QMainWindow):
                 self.sidebar.update_page_list()
                 if self.pdf_manager.get_page_count() > 0:
                     self.preview.show_page(0)
-                self.status_bar.setText(f"Opened: {file_path}")
+                self.status_bar.showMessage(f"Opened: {file_path}")
             else:
                 self.show_error("Error", "Failed to open the PDF file.")
     
@@ -81,7 +87,7 @@ class PDFEditorApp(QMainWindow):
         # If we have a current file path, save directly to it
         if self.pdf_manager.file_path:
             if self.pdf_manager.save_pdf():
-                self.status_bar.setText(f"Saved: {self.pdf_manager.file_path}")
+                self.status_bar.showMessage(f"Saved: {self.pdf_manager.file_path}")
                 self.show_info("Success", "PDF file saved successfully.")
             else:
                 self.show_error("Error", "Failed to save the PDF file.")
@@ -100,7 +106,7 @@ class PDFEditorApp(QMainWindow):
         
         if save_path:
             if self.pdf_manager.save_pdf(save_path):
-                self.status_bar.setText(f"Saved: {save_path}")
+                self.status_bar.showMessage(f"Saved: {save_path}")
                 self.show_info("Success", "PDF file saved successfully.")
             else:
                 self.show_error("Error", "Failed to save the PDF file.")
@@ -129,7 +135,7 @@ class PDFEditorApp(QMainWindow):
                 else:
                     self.preview.clear()
                 
-                self.status_bar.setText("Page deleted")
+                self.status_bar.showMessage("Page deleted")
             else:
                 self.show_error("Error", "Failed to delete the page.")
     
@@ -163,7 +169,7 @@ class PDFEditorApp(QMainWindow):
                 else:
                     self.preview.clear()
                     
-                self.status_bar.setText(f"Reloaded: {self.pdf_manager.current_file}")
+                self.status_bar.showMessage(f"Reloaded: {self.pdf_manager.current_file}")
             else:
                 self.show_error("Error", "Failed to reload the PDF file.")
 
@@ -213,15 +219,9 @@ class PDFEditorApp(QMainWindow):
         filename, _ = QFileDialog.getSaveFileName(self, title, "", filters)
         return filename
 
-    def setup_status_bar(self):
-        """Setup the status bar."""
-        self.status_bar = self.statusBar()
-        self.status_bar.showMessage("Ready")
-
 def main():
     """Main entry point for the application."""
     app = QApplication(sys.argv)
     window = PDFEditorApp()
-    window.setup_status_bar()
     window.show()
     sys.exit(app.exec())

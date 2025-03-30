@@ -1,7 +1,8 @@
 """
 File tab for the toolbar in the miniPDF application.
 """
-from PyQt6.QtWidgets import QPushButton, QMessageBox, QFileDialog, QVBoxLayout, QHBoxLayout
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
+                           QMessageBox, QFileDialog)
 from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import Qt
 from gui.toolbar_tabs.base_tab import BaseTab
@@ -25,85 +26,72 @@ class FileTab(BaseTab):
     
     def setup_ui(self):
         """Set up the UI components for the file tab."""
-        # File operations frame
-        file_frame = self.create_frame("file", "Dosya İşlemleri")
-        file_layout = QVBoxLayout()
-        file_frame.setLayout(file_layout)
+        # Main layout
+        main_layout = QHBoxLayout()
         
-        file_operations_layout = QHBoxLayout()
-        file_layout.addLayout(file_operations_layout)
+        # File operations
+        file_layout = QVBoxLayout()
         
         # Open button with icon
-        open_btn = QPushButton("PDF Aç", file_frame)
+        open_btn = QPushButton("PDF Aç")
         open_btn.setIcon(QIcon.fromTheme("document-open"))
         open_btn.clicked.connect(self.app.open_pdf)
-        file_operations_layout.addWidget(open_btn)
+        file_layout.addWidget(open_btn)
         
         # Save button with icon
-        save_btn = QPushButton("Kaydet", file_frame)
+        save_btn = QPushButton("Kaydet")
         save_btn.setIcon(QIcon.fromTheme("document-save"))
         save_btn.clicked.connect(self.app.save_pdf)
-        file_operations_layout.addWidget(save_btn)
+        file_layout.addWidget(save_btn)
         
         # Save As button with icon
-        save_as_btn = QPushButton("Farklı Kaydet", file_frame)
+        save_as_btn = QPushButton("Farklı Kaydet")
         save_as_btn.setIcon(QIcon.fromTheme("document-save-as"))
         save_as_btn.clicked.connect(self.app.save_pdf_as)
-        file_operations_layout.addWidget(save_as_btn)
+        file_layout.addWidget(save_as_btn)
         
-        # Export frame
-        export_frame = self.create_frame("export", "Dışa Aktar")
+        main_layout.addLayout(file_layout)
+        
+        # Export operations
         export_layout = QVBoxLayout()
-        export_frame.setLayout(export_layout)
-        
-        export_operations_layout = QHBoxLayout()
-        export_layout.addLayout(export_operations_layout)
         
         # Export as image button
-        export_img_btn = QPushButton("Resim Olarak", export_frame)
+        export_img_btn = QPushButton("Resim Olarak")
         export_img_btn.setIcon(QIcon.fromTheme("image"))
         export_img_btn.clicked.connect(self._export_as_image)
-        export_operations_layout.addWidget(export_img_btn)
+        export_layout.addWidget(export_img_btn)
         
         # Export text button
-        export_text_btn = QPushButton("Metin Olarak", export_frame)
+        export_text_btn = QPushButton("Metin Olarak")
         export_text_btn.setIcon(QIcon.fromTheme("text-plain"))
         export_text_btn.clicked.connect(self._export_as_text)
-        export_operations_layout.addWidget(export_text_btn)
+        export_layout.addWidget(export_text_btn)
         
-        # Print operations frame
-        print_frame = self.create_frame("print", "Yazdır")
+        main_layout.addLayout(export_layout)
+        
+        # Print operations
         print_layout = QVBoxLayout()
-        print_frame.setLayout(print_layout)
-        
-        print_operations_layout = QHBoxLayout()
-        print_layout.addLayout(print_operations_layout)
         
         # Print button with icon
-        print_btn = QPushButton("Yazdır", print_frame)
+        print_btn = QPushButton("Yazdır")
         print_btn.setIcon(QIcon.fromTheme("print"))
         print_btn.clicked.connect(self._print_pdf)
-        print_operations_layout.addWidget(print_btn)
+        print_layout.addWidget(print_btn)
         
-        # Exit frame
-        exit_frame = self.create_frame("exit", "Çıkış")
+        main_layout.addLayout(print_layout)
+        
+        # Exit operations
         exit_layout = QVBoxLayout()
-        exit_frame.setLayout(exit_layout)
-        
-        exit_operations_layout = QHBoxLayout()
-        exit_layout.addLayout(exit_operations_layout)
         
         # Exit button with icon
-        exit_btn = QPushButton("Çıkış", exit_frame)
+        exit_btn = QPushButton("Çıkış")
         exit_btn.setIcon(QIcon.fromTheme("exit"))
         exit_btn.clicked.connect(self._close_application)
-        exit_operations_layout.addWidget(exit_btn)
+        exit_layout.addWidget(exit_btn)
         
-        main_layout = QVBoxLayout()
-        main_layout.addWidget(file_frame)
-        main_layout.addWidget(export_frame)
-        main_layout.addWidget(print_frame)
-        main_layout.addWidget(exit_frame)
+        main_layout.addLayout(exit_layout)
+        
+        # Set the main layout
         self.setLayout(main_layout)
     
     def _export_as_image(self):
@@ -111,70 +99,69 @@ class FileTab(BaseTab):
         if not self.check_pdf_open():
             return
             
-        # Dışa aktarma ayarları dialogunu göster
-        dialog = ExportImageDialog(self, len(self.app.pdf_manager.doc))
-        dialog.exec()
-        
-        if dialog.result is None:  # İptal edildi
-            return
+        dialog = ExportImageDialog(self, self.app.pdf_manager.get_page_count())
+        if dialog.exec() == QDialog.DialogCode.Accepted and dialog.result:
+            settings = dialog.result
             
-        pages, settings = dialog.result
-        
-        # Tek sayfa için geçerli sayfayı kullan
-        if pages is None:
-            pages = [self.app.preview.current_page_index]
-        
-        # Kaydetme yeri seç
-        if settings['output_mode'] == 'single':
-            file_path = QFileDialog.getSaveFileName(
-                self,
-                "Resmi Kaydet",
-                "",
-                "PNG Files (*.png);;JPEG Files (*.jpg;*.jpeg);;All Files (*.*)"
-            )
-            if not file_path[0]:
-                return
-            output_paths = [file_path[0]]
+            # Get pages to export
+            if settings['page_mode'] == 'current':
+                current_page = self.app.sidebar.get_selected_page_index()
+                if current_page is None:
+                    QMessageBox.warning(self, "Uyarı", "Lütfen bir sayfa seçin.")
+                    return
+                pages = [current_page]
+            else:
+                pages = list(range(self.app.pdf_manager.get_page_count()))
             
-        else:  # multiple
-            output_dir = QFileDialog.getExistingDirectory(
-                self,
-                "Görüntüleri Kaydetmek İçin Klasör Seçin"
-            )
-            if not output_dir:
-                return
-                
-            # Her sayfa için dosya yolu oluştur
-            output_paths = [
-                os.path.join(output_dir, f"sayfa_{page + 1}.{settings['format']}")
-                for page in pages
-            ]
-        
-        try:
+            # Get output path(s)
+            if settings['output_mode'] == 'single':
+                file_path, _ = QFileDialog.getSaveFileName(
+                    self,
+                    "Resmi Kaydet",
+                    "",
+                    f"Image Files (*.{settings['format']})"
+                )
+                if not file_path:
+                    return
+                output_paths = [file_path]
+            else:
+                output_dir = QFileDialog.getExistingDirectory(
+                    self,
+                    "Görüntüleri Kaydetmek İçin Klasör Seçin"
+                )
+                if not output_dir:
+                    return
+                    
+                # Create output paths for each page
+                output_paths = []
+                for i in pages:
+                    filename = f"page_{i+1}.{settings['format']}"
+                    output_paths.append(os.path.join(output_dir, filename))
+            
+            # Export images
             success_count = 0
             error_messages = []
             
-            # Her sayfayı dışa aktar
-            for i, page_num in enumerate(pages):
+            for i, (page_num, output_path) in enumerate(zip(pages, output_paths)):
                 try:
-                    page = self.app.pdf_manager.doc[page_num]
-                    success = self.text_extractor.save_page_as_image(
-                        page,
-                        output_paths[i],
-                        zoom=settings['zoom']
-                    )
-                    
-                    if success:
-                        success_count += 1
+                    page = self.app.pdf_manager.get_page(page_num)
+                    if page:
+                        img = self.app.pdf_manager.get_page_as_image(page_num, settings['zoom'])
+                        if img:
+                            if settings['format'] == 'jpeg':
+                                img.save(output_path, quality=settings['quality'])
+                            else:
+                                img.save(output_path)
+                            success_count += 1
+                        else:
+                            error_messages.append(f"Sayfa {page_num + 1}: Görüntü oluşturulamadı")
                     else:
-                        error_messages.append(f"Sayfa {page_num + 1} kaydedilemedi")
-                        
+                        error_messages.append(f"Sayfa {page_num + 1}: Sayfa bulunamadı")
                 except Exception as e:
                     error_messages.append(f"Sayfa {page_num + 1}: {str(e)}")
             
-            # Sonucu göster
-            total_count = len(pages)
-            if success_count == total_count:
+            # Show result
+            if success_count == len(pages):
                 QMessageBox.information(
                     self,
                     "Başarılı",
@@ -184,7 +171,7 @@ class FileTab(BaseTab):
                 QMessageBox.warning(
                     self,
                     "Kısmi Başarı",
-                    f"{total_count} sayfadan {success_count} tanesi kaydedildi.\n"
+                    f"{len(pages)} sayfadan {success_count} tanesi kaydedildi.\n"
                     f"Hatalar:\n" + "\n".join(error_messages)
                 )
             else:
@@ -193,87 +180,72 @@ class FileTab(BaseTab):
                     "Hata",
                     f"Hiçbir sayfa kaydedilemedi.\nHatalar:\n" + "\n".join(error_messages)
                 )
-                
-        except Exception as e:
-            QMessageBox.critical(
-                self,
-                "Hata",
-                f"Görüntü kaydedilirken hata oluştu:\n{str(e)}"
-            )
-
+    
     def _export_as_text(self):
         """Export PDF page as text."""
         if not self.check_pdf_open():
             return
             
+        current_page = self.app.sidebar.get_selected_page_index()
+        if current_page is None:
+            QMessageBox.warning(self, "Uyarı", "Lütfen bir sayfa seçin.")
+            return
+            
         try:
-            # Geçerli sayfanın metnini al
+            # Extract text
             text = self.text_extractor.extract_text(
                 self.app.pdf_manager.doc,
-                self.app.preview.current_page_index
+                current_page
             )
             
-            # Text export dialogunu göster
+            # Show text export dialog
             dialog = TextExportDialog(self, text)
-            dialog.exec()
-            
-            if dialog.result is None:  # İptal edildi
-                return
+            if dialog.exec() == QDialog.DialogCode.Accepted and dialog.result:
+                # Get save path
+                file_path, _ = QFileDialog.getSaveFileName(
+                    self,
+                    "Metni Kaydet",
+                    "",
+                    "Text Files (*.txt);;All Files (*.*)"
+                )
                 
-            # Kaydetme yeri seç
-            file_path = QFileDialog.getSaveFileName(
-                self,
-                "Metni Kaydet",
-                "",
-                "Text Files (*.txt);;All Files (*.*)"
-            )
-            
-            if not file_path[0]:  # İptal edildi
-                return
-                
-            # Metni dosyaya kaydet
-            try:
-                with open(file_path[0], 'w', encoding='utf-8') as f:
-                    f.write(dialog.result)
+                if not file_path:  # Cancelled
+                    return
                     
-                QMessageBox.information(
-                    self,
-                    "Başarılı",
-                    "Metin başarıyla kaydedildi."
-                )
-                
-            except Exception as e:
-                QMessageBox.critical(
-                    self,
-                    "Hata",
-                    f"Metin kaydedilirken hata oluştu:\n{str(e)}"
-                )
-                
+                # Save text to file
+                try:
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        f.write(dialog.result)
+                        
+                    QMessageBox.information(
+                        self,
+                        "Başarılı",
+                        "Metin başarıyla kaydedildi."
+                    )
+                except Exception as e:
+                    QMessageBox.critical(
+                        self,
+                        "Hata",
+                        f"Metin kaydedilirken hata oluştu:\n{str(e)}"
+                    )
         except Exception as e:
             QMessageBox.critical(
                 self,
                 "Hata",
                 f"Metin çıkartılırken hata oluştu:\n{str(e)}"
             )
-
+    
     def _print_pdf(self):
         """Print the current PDF."""
         if not self.check_pdf_open():
             return
-        
-        # On macOS, use the default PDF viewer to print
-        if os.name == "posix":
-            self.app.open_with_default_app()
-        else:
-            self.show_not_implemented()
+            
+        QMessageBox.information(
+            self,
+            "Bilgi",
+            "Yazdırma özelliği henüz eklenmedi."
+        )
     
     def _close_application(self):
         """Close the application."""
-        self.app.root.quit()
-
-    def check_pdf_open(self):
-        """Check if a PDF is currently open."""
-        if not self.app.pdf_manager.doc:
-            QMessageBox.information(self, "Bilgi", "Önce bir PDF dosyası açmalısınız.")
-            return False
-        return True
+        self.app.close()
