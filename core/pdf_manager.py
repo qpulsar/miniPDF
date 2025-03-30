@@ -3,6 +3,7 @@ Core PDF management functionality.
 """
 import pymupdf
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -258,3 +259,54 @@ class PDFManager:
             self.doc = None
             self.file_path = None
             self._has_changes = False
+            
+    def split_pdf(self, output_dir, split_ranges=None):
+        """Split PDF into multiple files.
+        
+        Args:
+            output_dir: Directory to save split PDFs
+            split_ranges: List of tuples (start, end) for page ranges.
+                        If None, each page becomes a separate PDF.
+                        Page numbers are 0-based.
+                        
+        Returns:
+            list: List of created PDF file paths, empty if failed
+        """
+        if not self.doc:
+            return []
+            
+        try:
+            output_files = []
+            page_count = len(self.doc)
+            
+            # If no ranges specified, create one PDF per page
+            if not split_ranges:
+                split_ranges = [(i, i) for i in range(page_count)]
+                
+            # Create output PDFs
+            for i, (start, end) in enumerate(split_ranges):
+                if start < 0 or end >= page_count or start > end:
+                    logger.error(f"Invalid page range: {start}-{end}")
+                    continue
+                    
+                try:
+                    # Create new PDF
+                    new_doc = pymupdf.open()
+                    
+                    # Copy pages
+                    new_doc.insert_pdf(self.doc, from_page=start, to_page=end)
+                    
+                    # Save PDF
+                    output_file = os.path.join(output_dir, f"split_{i + 1}.pdf")
+                    new_doc.save(output_file)
+                    new_doc.close()
+                    
+                    output_files.append(output_file)
+                except Exception as e:
+                    logger.error(f"Error creating split PDF {i + 1}: {e}")
+                    continue
+                    
+            return output_files
+        except Exception as e:
+            logger.error(f"Error splitting PDF: {e}")
+            return []

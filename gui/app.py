@@ -463,11 +463,86 @@ class PDFEditorApp(QMainWindow):
         
     def on_split(self):
         """Handle split PDF action."""
-        QMessageBox.information(
+        if not self.pdf_manager.doc:
+            QMessageBox.information(
+                self,
+                "Info",
+                "Please open a PDF file first."
+            )
+            return
+            
+        # Get output directory
+        output_dir = QFileDialog.getExistingDirectory(
             self,
-            "Info",
-            "PDF splitting will be implemented in a future version."
+            "Select Output Directory",
+            ""
         )
+        
+        if not output_dir:
+            return
+            
+        # Ask for split mode
+        split_modes = ["One PDF per page", "Custom page ranges"]
+        mode, ok = QInputDialog.getItem(
+            self,
+            "Split PDF",
+            "Select split mode:",
+            split_modes,
+            current=0,
+            editable=False
+        )
+        
+        if not ok:
+            return
+            
+        split_ranges = None
+        if mode == "Custom page ranges":
+            # Get page ranges
+            ranges_text, ok = QInputDialog.getText(
+                self,
+                "Split PDF",
+                "Enter page ranges (e.g., '1-3, 4-6' or '1, 2, 3-5'):",
+                text="1-" + str(self.pdf_manager.get_page_count())
+            )
+            
+            if not ok:
+                return
+                
+            try:
+                # Parse page ranges
+                split_ranges = []
+                for range_str in ranges_text.split(","):
+                    range_str = range_str.strip()
+                    if "-" in range_str:
+                        start, end = map(int, range_str.split("-"))
+                        split_ranges.append((start - 1, end - 1))
+                    else:
+                        page = int(range_str)
+                        split_ranges.append((page - 1, page - 1))
+            except ValueError:
+                QMessageBox.critical(
+                    self,
+                    "Error",
+                    "Invalid page range format."
+                )
+                return
+                
+        # Split PDF
+        output_files = self.pdf_manager.split_pdf(output_dir, split_ranges)
+        
+        if output_files:
+            QMessageBox.information(
+                self,
+                "Success",
+                f"PDF split into {len(output_files)} files.\nSaved in: {output_dir}"
+            )
+            self.status_bar.showMessage(f"PDF split into {len(output_files)} files")
+        else:
+            QMessageBox.critical(
+                self,
+                "Error",
+                "Could not split PDF."
+            )
         
     def on_encrypt(self):
         """Handle encrypt PDF action."""
