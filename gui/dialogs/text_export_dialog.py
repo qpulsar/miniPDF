@@ -1,75 +1,62 @@
 """
-Text export dialog for PDF pages.
+Dialog for exporting PDF text content.
 """
-import tkinter as tk
-from tkinter import ttk, messagebox
-import ttkbootstrap as ttk
-from .base_dialog import BaseDialog
+from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
+                           QTextEdit, QPushButton)
+from PyQt6.QtCore import Qt
 
-class TextExportDialog(BaseDialog):
-    def __init__(self, parent, text_content):
-        super().__init__(
-            parent,
-            title="Metni Görüntüle",
-            geometry="600x400"
-        )
+class TextExportDialog(QDialog):
+    """Dialog for viewing and exporting PDF text content."""
+    
+    def __init__(self, parent, text):
+        """Initialize the dialog.
         
-        self.text_content = text_content
+        Args:
+            parent: Parent widget
+            text (str): Text content to display
+        """
+        super().__init__(parent)
+        self.text = text
         self.result = None
+        self.setup_ui()
         
-        self.create_widgets()
+    def setup_ui(self):
+        """Setup dialog UI."""
+        self.setWindowTitle("Metin Dışa Aktarma")
+        self.setMinimumSize(600, 400)
         
-    def create_widgets(self):
-        # Ana frame
-        main_frame = ttk.Frame(self.dialog, padding="10")
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        layout = QVBoxLayout(self)
         
-        # Metin alanı
-        text_frame = ttk.LabelFrame(main_frame, text="Metin İçeriği", padding="5")
-        text_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+        # Text preview
+        preview_label = QLabel("Önizleme:")
+        layout.addWidget(preview_label)
         
-        # Metin alanı ve kaydırma çubuğu
-        self.text_area, scrollbar = self.create_text_area(
-            text_frame,
-            wrap=tk.WORD,
-            width=60,
-            height=15
-        )
+        self.text_edit = QTextEdit()
+        self.text_edit.setPlainText(self.text)
+        self.text_edit.setReadOnly(True)
+        layout.addWidget(self.text_edit)
         
-        # Metni ekle
-        self.text_area.insert("1.0", self.text_content)
+        # Buttons
+        button_layout = QHBoxLayout()
         
-        # Salt okunur yap
-        self.text_area.configure(state="disabled")
+        ok_button = QPushButton("Tamam")
+        ok_button.clicked.connect(self.accept)
+        button_layout.addWidget(ok_button)
         
-        # Butonlar
-        btn_frame = self.create_buttons_frame()
+        cancel_button = QPushButton("İptal")
+        cancel_button.clicked.connect(self.reject)
+        button_layout.addWidget(cancel_button)
         
-        self.add_button(
-            btn_frame,
-            text="İptal",
-            command=self.cancel,
-            style="danger"
-        )
+        layout.addLayout(button_layout)
         
-        self.add_button(
-            btn_frame,
-            text="Kaydet",
-            command=self.ok,
-            style="primary"
-        )
+        self.setLayout(layout)
         
-        # Enter tuşunu Kaydet butonuna bağla
-        self.dialog.bind("<Return>", lambda e: self.ok())
-        # Escape tuşunu İptal butonuna bağla
-        self.dialog.bind("<Escape>", lambda e: self.cancel())
+    def accept(self):
+        """Handle dialog acceptance."""
+        self.result = self.text_edit.toPlainText()
+        super().accept()
         
-    def ok(self):
-        """Kaydet butonuna tıklandığında."""
-        self.result = self.text_area.get("1.0", tk.END)
-        self.close()
-        
-    def cancel(self):
-        """İptal butonuna tıklandığında."""
+    def reject(self):
+        """Handle dialog rejection."""
         self.result = None
-        self.close()
+        super().reject()

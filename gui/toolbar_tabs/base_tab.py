@@ -1,60 +1,67 @@
 """
 Base tab class for toolbar tabs in the miniPDF application.
 """
-import tkinter as tk
-from tkinter import ttk, messagebox
-from gui.utils import add_button
-from gui.utils import (
-    PDF_OPEN_REQUIRED, FEATURE_NOT_IMPLEMENTED,
-    INFO_TITLE, SUCCESS_TITLE
-)
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QFrame, QLabel, QHBoxLayout, QMessageBox
+from gui.utils import PDF_OPEN_REQUIRED, FEATURE_NOT_IMPLEMENTED, INFO_TITLE, SUCCESS_TITLE
 
-class BaseTab:
+class BaseTab(QWidget):
     """Base class for toolbar tabs."""
     
     def __init__(self, parent, app):
-        """
-        Initialize the base tab.
+        """Initialize base tab.
         
         Args:
-            parent (ttk.Frame): Parent frame for the tab
+            parent: Parent widget
             app: Main application instance
         """
-        self.parent = parent
+        super().__init__(parent)
         self.app = app
-        self.frames = {}
+        self.layout = QVBoxLayout(self)
+        self.setLayout(self.layout)
         
-    def create_frame(self, name, text):
-        """
-        Create a labeled frame in the tab.
+    def create_frame(self, name, title):
+        """Create a labeled frame.
         
         Args:
-            name (str): Name of the frame
-            text (str): Label text for the frame
+            name (str): Frame name
+            title (str): Frame title
             
         Returns:
-            ttk.LabelFrame: The created frame
+            QWidget: Created frame content area
         """
-        frame = ttk.LabelFrame(self.parent, text=text)
-        frame.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.Y)
-        self.frames[name] = frame
-        return frame
+        frame = QFrame(self)
+        frame.setObjectName(name)
+        frame.setFrameStyle(QFrame.Shape.StyledPanel | QFrame.Shadow.Raised)
+        
+        frame_layout = QVBoxLayout(frame)
+        
+        # Add title
+        title_label = QLabel(title)
+        title_label.setObjectName(f"{name}_title")
+        frame_layout.addWidget(title_label)
+        
+        # Add content area
+        content = QWidget()
+        content_layout = QHBoxLayout(content)
+        content.setLayout(content_layout)
+        frame_layout.addWidget(content)
+        
+        self.layout.addWidget(frame)
+        return content
     
-    def add_button(self, frame, text, command, side=tk.LEFT, **kwargs):
+    def add_button(self, frame, text, command):
         """
         Add a button to a frame.
         
         Args:
-            frame (ttk.Frame): Frame to add the button to
+            frame (QWidget): Frame to add the button to
             text (str): Button text
             command: Button command
-            side: Pack side (default: tk.LEFT)
-            **kwargs: Additional keyword arguments for the button
-            
-        Returns:
-            ttk.Button: The created button
         """
-        return add_button(frame, text, command, side, **kwargs)
+        from PyQt6.QtWidgets import QPushButton
+        button = QPushButton(text, frame)
+        button.clicked.connect(command)
+        frame.layout().addWidget(button)
     
     def check_pdf_open(self):
         """
@@ -64,13 +71,13 @@ class BaseTab:
             bool: True if a PDF is open, False otherwise
         """
         if not self.app.pdf_manager.current_file:
-            messagebox.showinfo(INFO_TITLE, PDF_OPEN_REQUIRED)
+            QMessageBox.information(self, INFO_TITLE, PDF_OPEN_REQUIRED)
             return False
         return True
     
     def show_not_implemented(self):
         """Show a message for features that are not yet implemented."""
-        messagebox.showinfo(INFO_TITLE, FEATURE_NOT_IMPLEMENTED)
+        QMessageBox.information(self, INFO_TITLE, FEATURE_NOT_IMPLEMENTED)
     
     def show_success_message(self, message):
         """
@@ -79,4 +86,4 @@ class BaseTab:
         Args:
             message (str): Success message to show
         """
-        messagebox.showinfo(SUCCESS_TITLE, message)
+        QMessageBox.information(self, SUCCESS_TITLE, message)

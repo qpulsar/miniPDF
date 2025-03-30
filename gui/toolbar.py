@@ -2,12 +2,9 @@
 Toolbar module for the PDF Editor application.
 This is the main toolbar class that uses the modular tab implementations.
 """
-import sys
-from PyQt6.QtWidgets import QApplication, QToolBar, QAction, QTabWidget, QWidget
+from PyQt6.QtWidgets import QToolBar, QTabWidget, QWidget
 from PyQt6.QtGui import QIcon
-from qt_material import QtGui
-from core.pdf_manager import PDFManager
-from PIL import Image
+import qt_material
 import os
 from gui.toolbar_style import apply_toolbar_style
 from gui.toolbar_tabs import FileTab, PageTab, EditTab, ToolsTab, ViewTab, HelpTab
