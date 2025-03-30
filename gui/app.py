@@ -1,89 +1,90 @@
 """
 Main application GUI for the PDF Editor.
 """
-import tkinter as tk
-from tkinter import ttk
-from tkinter import filedialog, messagebox
-import ttkbootstrap as ttk
+import sys
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, 
+                           QVBoxLayout, QHBoxLayout, QFileDialog, QMessageBox)
+from PyQt6.QtCore import Qt
+from qt_material import apply_stylesheet
 
 from gui.toolbar import Toolbar
 from gui.sidebar import Sidebar
 from gui.preview import PDFPreview
 from core.pdf_manager import PDFManager
-from theme import get_theme_colors
 import config
 
-class PDFEditorApp:
+class PDFEditorApp(QMainWindow):
     """Main application class for the PDF Editor."""
     
-    def __init__(self, root):
-        """Initialize the PDF Editor application.
-        
-        Args:
-            root: Tkinter root window
-        """
-        self.root = root
-        
-        # Apply ttk style
-        self.style = ttk.Style()
-        
-        # Get theme colors
-        self.theme_colors = get_theme_colors(self.style)
+    def __init__(self):
+        """Initialize the PDF Editor application."""
+        super().__init__()
         
         # Initialize PDF manager
         self.pdf_manager = PDFManager()
         
-        # Create the main frame
-        self.main_frame = ttk.Frame(self.root)
-        self.main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        # Setup UI
+        self.setup_ui()
+        
+        # Apply material theme
+        apply_stylesheet(self, theme='dark_teal.xml')
+        
+    def setup_ui(self):
+        """Setup the main user interface."""
+        self.setWindowTitle("miniPDF Editor")
+        self.setGeometry(100, 100, 1200, 800)
+        
+        # Create central widget and main layout
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        main_layout = QVBoxLayout(central_widget)
         
         # Create toolbar
-        self.toolbar = Toolbar(self.main_frame, self)
-        self.toolbar.pack(fill=tk.X, side=tk.TOP, pady=(0, 10))
+        self.toolbar = Toolbar(self)
+        main_layout.addWidget(self.toolbar)
         
         # Create content area with sidebar and preview
-        self.content_frame = ttk.Frame(self.main_frame)
-        self.content_frame.pack(fill=tk.BOTH, expand=True)
+        content_widget = QWidget()
+        content_layout = QHBoxLayout(content_widget)
+        main_layout.addWidget(content_widget)
         
         # Create sidebar for page list
-        self.sidebar = Sidebar(self.content_frame, self)
-        self.sidebar.pack(fill=tk.Y, side=tk.LEFT, padx=(0, 10))
+        self.sidebar = Sidebar(self)
+        content_layout.addWidget(self.sidebar)
         
         # Create preview area
-        self.preview = PDFPreview(self.content_frame, self)
-        self.preview.pack(fill=tk.BOTH, expand=True, side=tk.RIGHT)
+        self.preview = PDFPreview(self)
+        content_layout.addWidget(self.preview)
         
-        # Set up status bar
-        self.status_var = tk.StringVar()
-        self.status_var.set("Ready")
-        self.status_bar = ttk.Label(self.root, textvariable=self.status_var, relief=tk.SUNKEN, anchor=tk.W)
-        self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
-    
+        # Set content layout stretch factors
+        content_layout.setStretch(0, 1)  # Sidebar
+        content_layout.setStretch(1, 4)  # Preview
+        
     def open_pdf(self):
         """Open a PDF file."""
-        file_path = filedialog.askopenfilename(filetypes=[("PDF Files", "*.pdf")])
+        file_path = self.get_open_filename("Open PDF File", [("PDF Files", "*.pdf")])
         if file_path:
             if self.pdf_manager.open_pdf(file_path):
                 self.sidebar.update_page_list()
                 if self.pdf_manager.get_page_count() > 0:
                     self.preview.show_page(0)
-                self.status_var.set(f"Opened: {file_path}")
+                self.status_bar.setText(f"Opened: {file_path}")
             else:
-                messagebox.showerror("Error", "Failed to open the PDF file.")
+                self.show_error("Error", "Failed to open the PDF file.")
     
     def save_pdf(self):
         """Save the current PDF file."""
         if not self.pdf_manager.doc:
-            messagebox.showinfo("Info", "No PDF file is currently open.")
+            self.show_info("Info", "No PDF file is currently open.")
             return
             
         # If we have a current file path, save directly to it
         if self.pdf_manager.file_path:
             if self.pdf_manager.save_pdf():
-                self.status_var.set(f"Saved: {self.pdf_manager.file_path}")
-                messagebox.showinfo("Success", "PDF file saved successfully.")
+                self.status_bar.setText(f"Saved: {self.pdf_manager.file_path}")
+                self.show_info("Success", "PDF file saved successfully.")
             else:
-                messagebox.showerror("Error", "Failed to save the PDF file.")
+                self.show_error("Error", "Failed to save the PDF file.")
             return
         
         # If no current file path, show save dialog
@@ -92,33 +93,30 @@ class PDFEditorApp:
     def save_pdf_as(self):
         """Save the current PDF file with a new name."""
         if not self.pdf_manager.doc:
-            messagebox.showinfo("Info", "No PDF file is currently open.")
+            self.show_info("Info", "No PDF file is currently open.")
             return
             
-        save_path = filedialog.asksaveasfilename(
-            defaultextension=".pdf",
-            filetypes=[("PDF Files", "*.pdf")]
-        )
+        save_path = self.get_save_filename("Save PDF File", [("PDF Files", "*.pdf")])
         
         if save_path:
             if self.pdf_manager.save_pdf(save_path):
-                self.status_var.set(f"Saved: {save_path}")
-                messagebox.showinfo("Success", "PDF file saved successfully.")
+                self.status_bar.setText(f"Saved: {save_path}")
+                self.show_info("Success", "PDF file saved successfully.")
             else:
-                messagebox.showerror("Error", "Failed to save the PDF file.")
+                self.show_error("Error", "Failed to save the PDF file.")
     
     def delete_current_page(self):
         """Delete the currently selected page."""
         if not self.pdf_manager.doc:
-            messagebox.showinfo("Info", "No PDF file is currently open.")
+            self.show_info("Info", "No PDF file is currently open.")
             return
             
         current_page = self.sidebar.get_selected_page_index()
         if current_page is None:
-            messagebox.showinfo("Info", "No page selected.")
+            self.show_info("Info", "No page selected.")
             return
             
-        if messagebox.askyesno("Confirm", "Are you sure you want to delete this page?"):
+        if QMessageBox.Yes == QMessageBox.question(self, "Confirm", "Are you sure you want to delete this page?"):
             if self.pdf_manager.delete_page(current_page):
                 self.sidebar.update_page_list()
                 
@@ -131,24 +129,19 @@ class PDFEditorApp:
                 else:
                     self.preview.clear()
                 
-                self.status_var.set("Page deleted")
+                self.status_bar.setText("Page deleted")
             else:
-                messagebox.showerror("Error", "Failed to delete the page.")
+                self.show_error("Error", "Failed to delete the page.")
     
     def on_closing(self):
         """Handle application closing."""
         if self.pdf_manager.doc:
-            if messagebox.askyesno("Confirm", "Do you want to save changes before exiting?"):
+            if QMessageBox.Yes == QMessageBox.question(self, "Confirm", "Do you want to save changes before exiting?"):
                 self.save_pdf()
             self.pdf_manager.close()
         
-        self.root.destroy()
+        self.close()
     
-    def run(self):
-        """Run the application."""
-        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
-        self.root.mainloop()
-        
     def reload_pdf(self):
         """Reload the current PDF file to reflect changes."""
         if self.pdf_manager.current_file:
@@ -170,6 +163,65 @@ class PDFEditorApp:
                 else:
                     self.preview.clear()
                     
-                self.status_var.set(f"Reloaded: {self.pdf_manager.current_file}")
+                self.status_bar.setText(f"Reloaded: {self.pdf_manager.current_file}")
             else:
-                messagebox.showerror("Hata", "PDF dosyası yeniden yüklenirken bir hata oluştu.")
+                self.show_error("Error", "Failed to reload the PDF file.")
+
+    def show_error(self, title, message):
+        """Show error message dialog.
+        
+        Args:
+            title (str): Dialog title
+            message (str): Error message
+        """
+        QMessageBox.critical(self, title, message)
+        
+    def show_info(self, title, message):
+        """Show information message dialog.
+        
+        Args:
+            title (str): Dialog title
+            message (str): Information message
+        """
+        QMessageBox.information(self, title, message)
+        
+    def get_open_filename(self, title, filetypes):
+        """Show file open dialog.
+        
+        Args:
+            title (str): Dialog title
+            filetypes (list): List of file type tuples (description, extension)
+            
+        Returns:
+            str: Selected filename or empty string if cancelled
+        """
+        filters = ";;".join([f"{desc} ({ext})" for desc, ext in filetypes])
+        filename, _ = QFileDialog.getOpenFileName(self, title, "", filters)
+        return filename
+        
+    def get_save_filename(self, title, filetypes):
+        """Show file save dialog.
+        
+        Args:
+            title (str): Dialog title
+            filetypes (list): List of file type tuples (description, extension)
+            
+        Returns:
+            str: Selected filename or empty string if cancelled
+        """
+        filters = ";;".join([f"{desc} ({ext})" for desc, ext in filetypes])
+        filename, _ = QFileDialog.getSaveFileName(self, title, "", filters)
+        return filename
+
+    def setup_status_bar(self):
+        """Setup the status bar."""
+        self.status_bar = self.statusBar()
+        self.status_bar.showMessage("Ready")
+
+def main():
+    """Main entry point for the application."""
+    app = QApplication(sys.argv)
+    window = PDFEditorApp()
+    window.setup_status_bar()
+    window.show()
+    sys.exit(app.exec())

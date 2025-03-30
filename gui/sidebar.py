@@ -1,112 +1,88 @@
 """
-Sidebar module for displaying PDF page list.
+Sidebar component for the PDF Editor.
 """
-import tkinter as tk
-from tkinter import ttk
-from tkinter import messagebox
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QListWidget, QLabel, QPushButton, QHBoxLayout
+from PyQt6.QtCore import Qt, pyqtSignal
 
-class Sidebar(ttk.Frame):
-    """Sidebar widget for displaying and managing PDF pages."""
+class Sidebar(QWidget):
+    """Sidebar widget containing the page list."""
     
-    def __init__(self, parent, app):
-        """Initialize the sidebar.
+    page_selected = pyqtSignal(int)  # Signal emitted when a page is selected
+    
+    def __init__(self, parent):
+        """Initialize sidebar.
         
         Args:
-            parent: Parent widget
-            app: Main application instance
+            parent: Parent widget (PDFEditorApp)
         """
-        super().__init__(parent, width=200)
-        self.app = app
+        super().__init__(parent)
+        self.app = parent
+        self.setup_ui()
         
-        # Create a label frame for the page list
-        self.pages_frame = ttk.LabelFrame(self, text="Pages")
-        self.pages_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+    def setup_ui(self):
+        """Setup sidebar UI."""
+        layout = QVBoxLayout(self)
         
-        # Create a treeview for the page list
-        self.page_tree = ttk.Treeview(self.pages_frame, columns=("page_num",), show="headings")
-        self.page_tree.heading("page_num", text="Page")
-        self.page_tree.column("page_num", width=150)
+        # Create title label
+        title_label = QLabel("Pages")
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title_label)
         
-        # Add a scrollbar
-        self.page_scrollbar = ttk.Scrollbar(
-            self.pages_frame,
-            orient=tk.VERTICAL,
-            command=self.page_tree.yview
-        )
-        self.page_tree.configure(yscrollcommand=self.page_scrollbar.set)
-        
-        # Pack the treeview and scrollbar
-        self.page_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.page_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        
-        # Bind selection event
-        self.page_tree.bind("<<TreeviewSelect>>", self._on_page_select)
+        # Create page list
+        self.page_list = QListWidget()
+        self.page_list.currentRowChanged.connect(self._on_page_selected)
+        layout.addWidget(self.page_list)
         
         # Add buttons for page manipulation
-        self.button_frame = ttk.Frame(self)
-        self.button_frame.pack(fill=tk.X, padx=5, pady=5)
+        button_layout = QHBoxLayout()
+        self.move_up_button = QPushButton("Move Up")
+        self.move_up_button.clicked.connect(self._move_page_up)
+        button_layout.addWidget(self.move_up_button)
         
-        self.move_up_button = ttk.Button(
-            self.button_frame,
-            text="Move Up",
-            command=self._move_page_up
-        )
-        self.move_up_button.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.move_down_button = QPushButton("Move Down")
+        self.move_down_button.clicked.connect(self._move_page_down)
+        button_layout.addWidget(self.move_down_button)
         
-        self.move_down_button = ttk.Button(
-            self.button_frame,
-            text="Move Down",
-            command=self._move_page_down
-        )
-        self.move_down_button.pack(side=tk.RIGHT, fill=tk.X, expand=True)
-    
+        layout.addLayout(button_layout)
+        
+        self.setLayout(layout)
+        
     def update_page_list(self):
-        """Update the page list based on the current PDF document."""
-        # Clear the current list
-        self.page_tree.delete(*self.page_tree.get_children())
+        """Update the page list with current PDF pages."""
+        self.page_list.clear()
         
-        # If no document is open, return
-        if not self.app.pdf_manager.doc:
-            return
-        
-        # Add pages to the list
-        page_count = self.app.pdf_manager.get_page_count()
-        for i in range(page_count):
-            self.page_tree.insert("", tk.END, values=(f"Page {i + 1}",), iid=str(i))
-    
+        if self.app.pdf_manager.doc:
+            for i in range(len(self.app.pdf_manager.doc)):
+                self.page_list.addItem(f"Page {i + 1}")
+                
     def get_selected_page_index(self):
-        """Get the index of the currently selected page.
+        """Get the currently selected page index.
         
         Returns:
-            int: Selected page index or None if no selection
+            int: Selected page index or -1 if no selection
         """
-        selection = self.page_tree.selection()
-        if selection:
-            return int(selection[0])
-        return None
-    
-    def select_page(self, page_index):
-        """Select a page in the treeview.
+        return self.page_list.currentRow()
+        
+    def _on_page_selected(self, index):
+        """Handle page selection.
         
         Args:
-            page_index (int): Index of the page to select
+            index (int): Selected page index
         """
-        if 0 <= page_index < self.app.pdf_manager.get_page_count():
-            self.page_tree.selection_set(str(page_index))
-            self.page_tree.see(str(page_index))
-    
-    def _on_page_select(self, event):
-        """Handle page selection events."""
-        selected_index = self.get_selected_page_index()
-        if selected_index is not None:
-            self.app.preview.show_page(selected_index)
+        if index >= 0:
+            self.page_selected.emit(index)
+            self.app.preview.show_page(index)
     
     def _move_page_up(self):
         """Move the selected page up in the document order."""
         # This will be implemented later
-        messagebox.showinfo("Info", "Move Page Up functionality will be implemented soon.")
+        # For now, just show a message box
+        from PyQt6.QtWidgets import QMessageBox
+        QMessageBox.information(self, "Info", "Move Page Up functionality will be implemented soon.")
     
     def _move_page_down(self):
         """Move the selected page down in the document order."""
         # This will be implemented later
-        messagebox.showinfo("Info", "Move Page Down functionality will be implemented soon.")
+        # For now, just show a message box
+        from PyQt6.QtWidgets import QMessageBox
+        QMessageBox.information(self, "Info", "Move Page Down functionality will be implemented soon.")

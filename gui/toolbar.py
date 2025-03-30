@@ -2,56 +2,89 @@
 Toolbar module for the PDF Editor application.
 This is the main toolbar class that uses the modular tab implementations.
 """
-import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
-import ttkbootstrap as ttk
-from tkinter import filedialog
+import sys
+from PyQt6.QtWidgets import QApplication, QToolBar, QAction, QTabWidget, QWidget
+from PyQt6.QtGui import QIcon
+from qt_material import QtGui
 from core.pdf_manager import PDFManager
 from PIL import Image
 import os
 from gui.toolbar_style import apply_toolbar_style
 from gui.toolbar_tabs import FileTab, PageTab, EditTab, ToolsTab, ViewTab, HelpTab
 
-class Toolbar(ttk.Frame):
+class Toolbar(QToolBar):
     """Toolbar widget with MS Office-style ribbon interface for PDF operations."""
     
-    def __init__(self, parent, app):
+    def __init__(self, parent):
         """Initialize the toolbar.
         
         Args:
             parent: Parent widget
-            app: Main application instance
         """
         super().__init__(parent)
-        # Apply custom styling
-        self.style = ttk.Style()
-        apply_toolbar_style(self, self.style)
-        self.app = app
+        self.app = parent
+        self.setup_ui()
         
+    def setup_ui(self):
+        """Setup toolbar UI and actions."""
         # Create the main notebook for the ribbon
-        self.ribbon = ttk.Notebook(self)
-        self.ribbon.pack(fill=tk.X, expand=False, padx=2, pady=2)
+        self.ribbon = QTabWidget()
+        self.ribbon.setTabsClosable(False)
         
         # Create tabs for each category
-        self.file_tab = ttk.Frame(self.ribbon)
-        self.page_tab = ttk.Frame(self.ribbon)
-        self.edit_tab = ttk.Frame(self.ribbon)
-        self.tools_tab = ttk.Frame(self.ribbon)
-        self.view_tab = ttk.Frame(self.ribbon)
-        self.help_tab = ttk.Frame(self.ribbon)
+        self.file_tab = QWidget()
+        self.page_tab = QWidget()
+        self.edit_tab = QWidget()
+        self.tools_tab = QWidget()
+        self.view_tab = QWidget()
+        self.help_tab = QWidget()
         
         # Add tabs to the notebook
-        self.ribbon.add(self.file_tab, text="Dosya")
-        self.ribbon.add(self.page_tab, text="Sayfa")
-        self.ribbon.add(self.edit_tab, text="Düzenleme")
-        self.ribbon.add(self.tools_tab, text="Araçlar")
-        self.ribbon.add(self.view_tab, text="Görüntüleme")
-        self.ribbon.add(self.help_tab, text="Yardım")
+        self.ribbon.addTab(self.file_tab, "Dosya")
+        self.ribbon.addTab(self.page_tab, "Sayfa")
+        self.ribbon.addTab(self.edit_tab, "Düzenleme")
+        self.ribbon.addTab(self.tools_tab, "Araçlar")
+        self.ribbon.addTab(self.view_tab, "Görüntüleme")
+        self.ribbon.addTab(self.help_tab, "Yardım")
         
         # Initialize all ribbon tabs with their respective classes
-        self.file_tab_controller = FileTab(self.file_tab, app)
-        self.page_tab_controller = PageTab(self.page_tab, app)
-        self.edit_tab_controller = EditTab(self.edit_tab, app)
-        self.tools_tab_controller = ToolsTab(self.tools_tab, app)
-        self.view_tab_controller = ViewTab(self.view_tab, app)
-        self.help_tab_controller = HelpTab(self.help_tab, app)
+        self.file_tab_controller = FileTab(self.file_tab, self.app)
+        self.page_tab_controller = PageTab(self.page_tab, self.app)
+        self.edit_tab_controller = EditTab(self.edit_tab, self.app)
+        self.tools_tab_controller = ToolsTab(self.tools_tab, self.app)
+        self.view_tab_controller = ViewTab(self.view_tab, self.app)
+        self.help_tab_controller = HelpTab(self.help_tab, self.app)
+        
+        # Open PDF action
+        self.open_action = QAction(QIcon.fromTheme("document-open"), "Open PDF", self)
+        self.open_action.setStatusTip("Open a PDF file")
+        self.open_action.triggered.connect(self.app.open_pdf)
+        self.addAction(self.open_action)
+        
+        # Save PDF action
+        self.save_action = QAction(QIcon.fromTheme("document-save"), "Save", self)
+        self.save_action.setStatusTip("Save the current PDF")
+        self.save_action.triggered.connect(self.app.save_pdf)
+        self.addAction(self.save_action)
+        
+        # Save As action
+        self.save_as_action = QAction(QIcon.fromTheme("document-save-as"), "Save As", self)
+        self.save_as_action.setStatusTip("Save the PDF with a new name")
+        self.save_as_action.triggered.connect(self.app.save_pdf_as)
+        self.addAction(self.save_as_action)
+        
+        self.addSeparator()
+        
+        # Delete page action
+        self.delete_page_action = QAction(QIcon.fromTheme("edit-delete"), "Delete Page", self)
+        self.delete_page_action.setStatusTip("Delete the current page")
+        self.delete_page_action.triggered.connect(self.app.delete_current_page)
+        self.addAction(self.delete_page_action)
+        
+        self.addSeparator()
+        
+        # Reload PDF action
+        self.reload_action = QAction(QIcon.fromTheme("view-refresh"), "Reload", self)
+        self.reload_action.setStatusTip("Reload the current PDF")
+        self.reload_action.triggered.connect(self.app.reload_pdf)
+        self.addAction(self.reload_action)

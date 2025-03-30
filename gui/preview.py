@@ -1,133 +1,99 @@
 """
 PDF page preview module.
 """
-import tkinter as tk
-from tkinter import ttk
-from PIL import Image, ImageTk
-import io
+import sys
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QScrollArea, QSlider, QHBoxLayout
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QPixmap, QImage
+import fitz
 
-class PDFPreview(ttk.Frame):
+class PDFPreview(QScrollArea):
     """Widget for displaying PDF page previews."""
     
-    def __init__(self, parent, app):
+    def __init__(self, parent):
         """Initialize the PDF preview widget.
         
         Args:
             parent: Parent widget
-            app: Main application instance
         """
-        super().__init__(parent, relief=tk.SUNKEN, borderwidth=1)
-        self.app = app
+        super().__init__(parent)
+        self.app = parent
+        self.setup_ui()
         
-        # Create a frame for the preview controls
-        self.control_frame = ttk.Frame(self)
-        self.control_frame.pack(fill=tk.X, side=tk.TOP, pady=5)
+    def setup_ui(self):
+        """Setup preview UI."""
+        # Create widget to hold the preview
+        self.preview_widget = QWidget()
+        self.setWidget(self.preview_widget)
+        self.setWidgetResizable(True)
         
-        # Add zoom controls
-        self.zoom_label = ttk.Label(self.control_frame, text="Zoom:")
-        self.zoom_label.pack(side=tk.LEFT, padx=5)
+        # Create layout
+        layout = QVBoxLayout(self.preview_widget)
         
-        self.zoom_var = tk.IntVar(value=100)
-        self.zoom_scale = ttk.Scale(
-            self.control_frame,
-            from_=50,
-            to=200,
-            orient=tk.HORIZONTAL,
-            variable=self.zoom_var,
-            length=150,
-            command=self._on_zoom_change
-        )
-        self.zoom_scale.pack(side=tk.LEFT, padx=5)
+        # Create preview label
+        self.preview_label = QLabel()
+        self.preview_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.preview_label)
         
-        self.zoom_value_label = ttk.Label(self.control_frame, text="100%", width=5)
-        self.zoom_value_label.pack(side=tk.LEFT, padx=5)
+        # Create zoom controls
+        zoom_layout = QHBoxLayout()
+        self.zoom_label = QLabel("Zoom:")
+        zoom_layout.addWidget(self.zoom_label)
         
-        # Create a canvas for displaying the PDF page
-        self.canvas_frame = ttk.Frame(self)
-        self.canvas_frame.pack(fill=tk.BOTH, expand=True, side=tk.TOP)
+        self.zoom_slider = QSlider(Qt.Orientation.Horizontal)
+        self.zoom_slider.setMinimum(50)
+        self.zoom_slider.setMaximum(200)
+        self.zoom_slider.setValue(100)
+        self.zoom_slider.valueChanged.connect(self._on_zoom_change)
+        zoom_layout.addWidget(self.zoom_slider)
         
-        # Add scrollbars
-        self.h_scrollbar = ttk.Scrollbar(self.canvas_frame, orient=tk.HORIZONTAL)
-        self.h_scrollbar.pack(fill=tk.X, side=tk.BOTTOM)
+        self.zoom_value_label = QLabel("100%")
+        zoom_layout.addWidget(self.zoom_value_label)
         
-        self.v_scrollbar = ttk.Scrollbar(self.canvas_frame)
-        self.v_scrollbar.pack(fill=tk.Y, side=tk.RIGHT)
+        layout.addLayout(zoom_layout)
         
-        # Create the canvas
-        self.canvas = tk.Canvas(
-            self.canvas_frame,
-            xscrollcommand=self.h_scrollbar.set,
-            yscrollcommand=self.v_scrollbar.set,
-            bg="light gray"
-        )
-        self.canvas.pack(fill=tk.BOTH, expand=True, side=tk.LEFT)
-        
-        # Configure scrollbars
-        self.h_scrollbar.config(command=self.canvas.xview)
-        self.v_scrollbar.config(command=self.canvas.yview)
-        
-        # Create an image item on the canvas
-        self.image_id = self.canvas.create_image(0, 0, anchor=tk.NW)
+        self.preview_widget.setLayout(layout)
         
         # Store the current image
         self.current_image = None
         self.current_page_index = None
-        self.tk_image = None
         
-        # Bind events
-        self.canvas.bind("<Configure>", self._on_canvas_resize)
-        self.zoom_var.trace_add("write", self._update_zoom_label)
-    
-    def _update_zoom_label(self, *args):
-        """Update the zoom percentage label."""
-        self.zoom_value_label.config(text=f"{self.zoom_var.get()}%")
-    
-    def _on_zoom_change(self, *args):
+    def _on_zoom_change(self):
         """Handle zoom level changes."""
         if self.current_page_index is not None:
-            self.show_page(self.current_page_index)
+            self.show_page(self.current_page_index, self.zoom_slider.value() / 100.0)
+        self.zoom_value_label.setText(f"{self.zoom_slider.value()}%")
     
-    def _on_canvas_resize(self, event):
-        """Handle canvas resize events."""
-        if self.current_page_index is not None:
-            self.show_page(self.current_page_index)
-    
-    def show_page(self, page_index):
-        """Display a PDF page on the canvas.
+    def show_page(self, page_index, zoom=1.0):
+        """Display a PDF page on the preview.
         
         Args:
             page_index (int): Index of the page to display
+            zoom (float): Zoom factor for the page
         """
         self.current_page_index = page_index
         page = self.app.pdf_manager.get_page(page_index)
         
         if page:
-            # Get the zoom factor
-            zoom_factor = self.zoom_var.get() / 100.0
-            
-            # Render the page to a pixmap
-            matrix = fitz.Matrix(zoom_factor, zoom_factor)
+            # Get page pixmap
+            matrix = fitz.Matrix(zoom, zoom)
             pix = page.get_pixmap(matrix=matrix)
             
-            # Convert to PIL Image
-            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+            # Convert to QImage
+            img = QImage(pix.samples, pix.width, pix.height, pix.stride, QImage.Format.Format_RGB888)
+            
+            # Convert to QPixmap and display
+            pixmap = QPixmap.fromImage(img)
+            self.preview_label.setPixmap(pixmap)
             
             # Store the original image
             self.current_image = img
             
-            # Convert to PhotoImage for display
-            self.tk_image = ImageTk.PhotoImage(image=img)
-            
-            # Update the canvas
-            self.canvas.itemconfig(self.image_id, image=self.tk_image)
-            self.canvas.config(scrollregion=self.canvas.bbox(tk.ALL))
-    
     def clear(self):
         """Clear the preview."""
-        self.canvas.itemconfig(self.image_id, image="")
+        self.preview_label.clear()
         self.current_image = None
         self.current_page_index = None
-        self.tk_image = None
 
 # Import here to avoid circular import issues
 import fitz  # PyMuPDF
