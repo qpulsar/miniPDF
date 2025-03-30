@@ -186,6 +186,27 @@ class PDFManager:
             logger.error(f"Error extracting image: {e}")
             return None
             
+    def add_page(self, page):
+        """Add a page to the PDF.
+        
+        Args:
+            page: Page object to add
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if not self.doc:
+            return False
+            
+        try:
+            self.doc.insert_page(-1, page)
+            self._has_changes = True
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error adding page: {e}")
+            return False
+            
     def has_changes(self):
         """Check if there are unsaved changes.
         

@@ -2,7 +2,7 @@
 Main application window for the PDF Editor.
 """
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-                           QFileDialog, QMessageBox, QStatusBar, QMenuBar)
+                           QFileDialog, QMessageBox, QStatusBar, QMenuBar, QInputDialog)
 from PyQt6.QtCore import Qt
 from .toolbar import Toolbar
 from .sidebar import Sidebar
@@ -201,12 +201,105 @@ class PDFEditorApp(QMainWindow):
         
     def on_add_page(self):
         """Handle add page action."""
-        QMessageBox.information(
+        if not self.pdf_manager.doc:
+            QMessageBox.information(
+                self,
+                "Info",
+                "Please open a PDF file first."
+            )
+            return
+            
+        # Ask for page position
+        current_page = self.sidebar.currentRow()
+        if current_page < 0:
+            current_page = self.pdf_manager.get_page_count()
+            
+        position, ok = QInputDialog.getInt(
             self,
-            "Info",
-            "Page addition will be implemented in a future version."
+            "Add Page",
+            "Enter page position (1 to add at start, or leave as is to add at current position):",
+            value=current_page + 1,
+            min=1,
+            max=self.pdf_manager.get_page_count() + 1
         )
         
+        if not ok:
+            return
+            
+        # Ask for page source
+        source_options = ["Blank Page", "From Another PDF"]
+        source, ok = QInputDialog.getItem(
+            self,
+            "Add Page",
+            "Select page source:",
+            source_options,
+            current=0,
+            editable=False
+        )
+        
+        if not ok:
+            return
+            
+        if source == "Blank Page":
+            # Add blank page
+            if self.pdf_manager.add_blank_page(position=position - 1):
+                self.sidebar.update_page_list()
+                self.preview.show_page(position - 1)
+                self.sidebar.setCurrentRow(position - 1)
+                self.status_bar.showMessage("Blank page added")
+            else:
+                QMessageBox.critical(
+                    self,
+                    "Error",
+                    "Could not add blank page."
+                )
+        else:
+            # Get source PDF
+            file_path, _ = QFileDialog.getOpenFileName(
+                self,
+                "Select Source PDF",
+                "",
+                "PDF Files (*.pdf);;All Files (*.*)"
+            )
+            
+            if not file_path:
+                return
+                
+            # Get page number from source PDF
+            try:
+                src_doc = fitz.open(file_path)
+                page_num, ok = QInputDialog.getInt(
+                    self,
+                    "Add Page",
+                    "Enter page number to copy (1 to last page):",
+                    value=1,
+                    min=1,
+                    max=len(src_doc)
+                )
+                src_doc.close()
+                
+                if not ok:
+                    return
+                    
+                # Add page from source PDF
+                if self.pdf_manager.add_page_from_pdf(file_path, page_num - 1, position - 1):
+                    self.sidebar.update_page_list()
+                    self.preview.show_page(position - 1)
+                    self.sidebar.setCurrentRow(position - 1)
+                    self.status_bar.showMessage("Page added from source PDF")
+                else:
+                    QMessageBox.critical(
+                        self,
+                        "Error",
+                        "Could not add page from source PDF."
+                    )
+            except Exception:
+                QMessageBox.critical(
+                    self,
+                    "Error",
+                    "Could not read source PDF."
+                )
+                
     def on_delete_page(self):
         """Handle delete page action."""
         if not self.pdf_manager.doc:
