@@ -1,8 +1,7 @@
 """
 Core PDF management functionality.
 """
-import os
-import fitz
+import pymupdf
 import logging
 
 logger = logging.getLogger(__name__)
@@ -26,7 +25,7 @@ class PDFManager:
             bool: True if successful, False otherwise
         """
         try:
-            self.doc = fitz.open(file_path)
+            self.doc = pymupdf.open(file_path)
             self.file_path = file_path
             self._has_changes = False
             return True
@@ -73,6 +72,39 @@ class PDFManager:
             
         except Exception as e:
             logger.error(f"Error saving PDF: {e}")
+            return False
+            
+    def merge_pdfs(self, pdf_files):
+        """Merge multiple PDFs into one.
+        
+        Args:
+            pdf_files: List of PDF file paths to merge
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if not pdf_files:
+            return False
+            
+        try:
+            # Create new PDF document
+            self.doc = pymupdf.open()
+            self.file_path = None
+            self._has_changes = True
+            
+            # Add pages from each PDF
+            for pdf_file in pdf_files:
+                try:
+                    src_doc = pymupdf.open(pdf_file)
+                    self.doc.insert_pdf(src_doc)
+                    src_doc.close()
+                except Exception as e:
+                    logger.error(f"Error merging PDF {pdf_file}: {e}")
+                    continue
+                    
+            return True
+        except Exception as e:
+            logger.error(f"Error creating merged PDF: {e}")
             return False
             
     def get_page_count(self):

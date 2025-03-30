@@ -5,6 +5,8 @@ from PyQt6.QtWidgets import QLabel, QScrollArea, QVBoxLayout, QWidget, QSizePoli
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QPixmap, QImage
 import fitz
+from pymupdf import pymupdf
+
 
 class PDFPreview(QScrollArea):
     """Widget for displaying PDF pages."""
@@ -60,7 +62,7 @@ class PDFPreview(QScrollArea):
             return
             
         # Get page pixmap
-        mat = fitz.Matrix(2.0 * self.current_zoom, 2.0 * self.current_zoom)
+        mat = pymupdf.Matrix(2.0 * self.current_zoom, 2.0 * self.current_zoom)
         pix = page.get_pixmap(matrix=mat)
         
         # Convert to QImage

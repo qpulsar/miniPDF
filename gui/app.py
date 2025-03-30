@@ -418,11 +418,48 @@ class PDFEditorApp(QMainWindow):
         
     def on_merge(self):
         """Handle merge PDFs action."""
-        QMessageBox.information(
+        # Get list of PDFs to merge
+        file_paths, _ = QFileDialog.getOpenFileNames(
             self,
-            "Info",
-            "PDF merging will be implemented in a future version."
+            "Select PDFs to Merge",
+            "",
+            "PDF Files (*.pdf);;All Files (*.*)"
         )
+        
+        if not file_paths:
+            return
+            
+        # Create merged PDF
+        if self.pdf_manager.merge_pdfs(file_paths):
+            self.sidebar.update_page_list()
+            if self.pdf_manager.get_page_count() > 0:
+                self.preview.show_page(0)
+                self.sidebar.setCurrentRow(0)
+            self.status_bar.showMessage("PDFs merged successfully")
+            
+            # Ask to save merged PDF
+            file_path, _ = QFileDialog.getSaveFileName(
+                self,
+                "Save Merged PDF As",
+                "",
+                "PDF Files (*.pdf);;All Files (*.*)"
+            )
+            
+            if file_path:
+                if self.pdf_manager.save_pdf_as(file_path):
+                    self.status_bar.showMessage(f"Merged PDF saved as {file_path}")
+                else:
+                    QMessageBox.critical(
+                        self,
+                        "Error",
+                        "Could not save merged PDF."
+                    )
+        else:
+            QMessageBox.critical(
+                self,
+                "Error",
+                "Could not merge PDFs."
+            )
         
     def on_split(self):
         """Handle split PDF action."""
