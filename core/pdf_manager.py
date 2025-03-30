@@ -310,3 +310,126 @@ class PDFManager:
         except Exception as e:
             logger.error(f"Error splitting PDF: {e}")
             return []
+            
+    def add_text_annotation(self, page_num, rect, text, color=(1, 1, 0)):
+        """Add a text annotation to a page.
+        
+        Args:
+            page_num: Page number (0-based)
+            rect: Rectangle coordinates (x0, y0, x1, y1)
+            text: Text content
+            color: Annotation color in RGB format (default: yellow)
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if not self.doc or page_num < 0 or page_num >= len(self.doc):
+            return False
+            
+        try:
+            page = self.doc[page_num]
+            annot = page.add_text_annot(rect, text)
+            annot.set_colors(stroke=color)
+            annot.update()
+            self._has_changes = True
+            return True
+        except Exception as e:
+            logger.error(f"Error adding text annotation: {e}")
+            return False
+            
+    def add_highlight_annotation(self, page_num, rect, color=(1, 1, 0)):
+        """Add a highlight annotation to a page.
+        
+        Args:
+            page_num: Page number (0-based)
+            rect: Rectangle coordinates (x0, y0, x1, y1)
+            color: Highlight color in RGB format (default: yellow)
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if not self.doc or page_num < 0 or page_num >= len(self.doc):
+            return False
+            
+        try:
+            page = self.doc[page_num]
+            annot = page.add_highlight_annot(rect)
+            annot.set_colors(stroke=color)
+            annot.update()
+            self._has_changes = True
+            return True
+        except Exception as e:
+            logger.error(f"Error adding highlight annotation: {e}")
+            return False
+            
+    def add_ink_annotation(self, page_num, points, color=(0, 0, 1), width=2):
+        """Add an ink (drawing) annotation to a page.
+        
+        Args:
+            page_num: Page number (0-based)
+            points: List of point lists, each sublist is a stroke
+            color: Ink color in RGB format (default: blue)
+            width: Line width (default: 2)
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if not self.doc or page_num < 0 or page_num >= len(self.doc):
+            return False
+            
+        try:
+            page = self.doc[page_num]
+            annot = page.add_ink_annot(points)
+            annot.set_colors(stroke=color)
+            annot.set_border(width=width)
+            annot.update()
+            self._has_changes = True
+            return True
+        except Exception as e:
+            logger.error(f"Error adding ink annotation: {e}")
+            return False
+            
+    def get_annotations(self, page_num):
+        """Get all annotations on a page.
+        
+        Args:
+            page_num: Page number (0-based)
+            
+        Returns:
+            list: List of annotations, empty if failed
+        """
+        if not self.doc or page_num < 0 or page_num >= len(self.doc):
+            return []
+            
+        try:
+            page = self.doc[page_num]
+            return page.annots()
+        except Exception as e:
+            logger.error(f"Error getting annotations: {e}")
+            return []
+            
+    def delete_annotation(self, page_num, annot_index):
+        """Delete an annotation from a page.
+        
+        Args:
+            page_num: Page number (0-based)
+            annot_index: Index of annotation to delete
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if not self.doc or page_num < 0 or page_num >= len(self.doc):
+            return False
+            
+        try:
+            page = self.doc[page_num]
+            annots = page.annots()
+            if annot_index < 0 or annot_index >= len(annots):
+                return False
+                
+            page.delete_annot(annots[annot_index])
+            self._has_changes = True
+            return True
+        except Exception as e:
+            logger.error(f"Error deleting annotation: {e}")
+            return False

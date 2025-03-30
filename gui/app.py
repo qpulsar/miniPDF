@@ -2,7 +2,7 @@
 Main application window for the PDF Editor.
 """
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-                           QFileDialog, QMessageBox, QStatusBar, QMenuBar, QInputDialog)
+                           QFileDialog, QMessageBox, QStatusBar, QMenuBar, QInputDialog, QColorDialog)
 from PyQt6.QtCore import Qt
 from .toolbar import Toolbar
 from .sidebar import Sidebar
@@ -378,35 +378,175 @@ class PDFEditorApp(QMainWindow):
         
     def on_add_text(self):
         """Handle add text action."""
-        QMessageBox.information(
+        if not self.pdf_manager.doc:
+            QMessageBox.information(
+                self,
+                "Info",
+                "Please open a PDF file first."
+            )
+            return
+            
+        current_page = self.sidebar.currentRow()
+        if current_page < 0:
+            QMessageBox.information(
+                self,
+                "Info",
+                "Please select a page first."
+            )
+            return
+            
+        # Get text content
+        text, ok = QInputDialog.getText(
             self,
-            "Info",
-            "Text addition will be implemented in a future version."
+            "Add Text Annotation",
+            "Enter text:"
         )
         
-    def on_draw(self):
-        """Handle draw action."""
-        QMessageBox.information(
+        if not ok or not text:
+            return
+            
+        # Get color
+        color = QColorDialog.getColor(
+            QColor(255, 255, 0),  # Default: yellow
             self,
-            "Info",
-            "Drawing will be implemented in a future version."
+            "Select Text Color"
         )
         
+        if color.isValid():
+            self.preview.start_text_annotation(color, text)
+            self.status_bar.showMessage("Click and drag to add text annotation")
+            
     def on_highlight(self):
         """Handle highlight action."""
-        QMessageBox.information(
+        if not self.pdf_manager.doc:
+            QMessageBox.information(
+                self,
+                "Info",
+                "Please open a PDF file first."
+            )
+            return
+            
+        current_page = self.sidebar.currentRow()
+        if current_page < 0:
+            QMessageBox.information(
+                self,
+                "Info",
+                "Please select a page first."
+            )
+            return
+            
+        # Get color
+        color = QColorDialog.getColor(
+            QColor(255, 255, 0),  # Default: yellow
             self,
-            "Info",
-            "Highlighting will be implemented in a future version."
+            "Select Highlight Color"
         )
         
+        if color.isValid():
+            self.preview.start_highlight_annotation(color)
+            self.status_bar.showMessage("Click and drag to highlight")
+            
+    def on_draw(self):
+        """Handle draw action."""
+        if not self.pdf_manager.doc:
+            QMessageBox.information(
+                self,
+                "Info",
+                "Please open a PDF file first."
+            )
+            return
+            
+        current_page = self.sidebar.currentRow()
+        if current_page < 0:
+            QMessageBox.information(
+                self,
+                "Info",
+                "Please select a page first."
+            )
+            return
+            
+        # Get line width
+        width, ok = QInputDialog.getDouble(
+            self,
+            "Drawing Settings",
+            "Line width:",
+            value=2.0,
+            min=0.1,
+            max=10.0,
+            decimals=1
+        )
+        
+        if not ok:
+            return
+            
+        # Get color
+        color = QColorDialog.getColor(
+            QColor(0, 0, 255),  # Default: blue
+            self,
+            "Select Drawing Color"
+        )
+        
+        if color.isValid():
+            self.preview.start_ink_annotation(color, width)
+            self.status_bar.showMessage("Click and drag to draw")
+            
     def on_delete_annotation(self):
         """Handle delete annotation action."""
-        QMessageBox.information(
+        if not self.pdf_manager.doc:
+            QMessageBox.information(
+                self,
+                "Info",
+                "Please open a PDF file first."
+            )
+            return
+            
+        current_page = self.sidebar.currentRow()
+        if current_page < 0:
+            QMessageBox.information(
+                self,
+                "Info",
+                "Please select a page first."
+            )
+            return
+            
+        # Get annotations on current page
+        annots = self.pdf_manager.get_annotations(current_page)
+        if not annots:
+            QMessageBox.information(
+                self,
+                "Info",
+                "No annotations found on this page."
+            )
+            return
+            
+        # Ask which annotation to delete
+        items = []
+        for i, annot in enumerate(annots):
+            annot_type = annot.type[1]  # Remove leading '/'
+            items.append(f"{i + 1}: {annot_type}")
+            
+        item, ok = QInputDialog.getItem(
             self,
-            "Info",
-            "Annotation deletion will be implemented in a future version."
+            "Delete Annotation",
+            "Select annotation to delete:",
+            items,
+            current=0,
+            editable=False
         )
+        
+        if ok and item:
+            # Extract index from selected item
+            index = int(item.split(":")[0]) - 1
+            
+            if self.pdf_manager.delete_annotation(current_page, index):
+                self.preview.show_page(current_page)
+                self.status_bar.showMessage("Annotation deleted")
+            else:
+                QMessageBox.critical(
+                    self,
+                    "Error",
+                    "Could not delete annotation."
+                )
         
     def on_ocr(self):
         """Handle OCR action."""
