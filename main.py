@@ -2,77 +2,41 @@
 Main entry point for the PDF Editor application.
 """
 import sys
-import os
-import locale
-import logging
-
-# Logging ayarları
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-
-# Locale ayarlarını daha güvenli şekilde yapılandırma ve monkey patch
-def configure_locale():
-    """Configure locale settings safely and apply monkey patch."""
-    try:
-        # Try to set the locale to the user's default
-        locale.setlocale(locale.LC_ALL, '')
-        logger.info(f"Locale set to: {locale.getlocale()}")
-    except locale.Error as e:
-        # If that fails, try English
-        try:
-            locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
-            logger.info("Locale set to en_US.UTF-8")
-        except locale.Error:
-            # If that also fails, use C locale as fallback
-            locale.setlocale(locale.LC_ALL, 'C')
-            logger.info("Locale set to C (fallback)")
-    
-    # Monkey patch locale.setlocale to prevent errors in ttkbootstrap
-    original_setlocale = locale.setlocale
-    
-    def patched_setlocale(category, loc=None):
-        try:
-            return original_setlocale(category, loc)
-        except locale.Error:
-            logger.warning(f"Locale error suppressed for: {loc}")
-            if loc is None or loc == '':
-                return 'C'
-            return loc
-    
-    # Apply the patch
-    locale.setlocale = patched_setlocale
-    logger.info("Applied locale monkey patch for ttkbootstrap compatibility")
-
-# Configure locale before importing other modules
-configure_locale()
-
-# Now import ttkbootstrap
-import ttkbootstrap as ttk
-
-# Add the project root to the Python path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-from gui.app import PDFEditorApp
-from gui.utils.button_styles import apply_m3_button_styles
-import config
+from PyQt6.QtWidgets import QApplication
+from qt_material import apply_stylesheet
+from gui.app import App
 
 def main():
     """Start the PDF Editor application."""
     try:
-        # Use ttkbootstrap Window instead of ThemedTk
-        root = ttk.Window(themename=config.THEME)
-        root.title(config.APP_NAME)
-        root.geometry(f"{config.WINDOW_WIDTH}x{config.WINDOW_HEIGHT}")
+        # Create QApplication instance
+        app = QApplication(sys.argv)
         
-        # Apply M3 button styles
-        apply_m3_button_styles(root)
+        # Create main window
+        print("Creating App instance...")
+        window = App()
+        print("App instance created")
+        print(f"PDF Manager: {window.pdf_manager}")
+        print(f"Has open_pdf: {hasattr(window.pdf_manager, 'open_pdf')}")
+        if window.pdf_manager:
+            print(f"Methods: {dir(window.pdf_manager)}")
         
-        app = PDFEditorApp(root)
+        window.setWindowTitle("miniPDF Editor")
+        window.resize(1200, 800)
         
-        root.mainloop()
+        # Apply material theme
+        apply_stylesheet(app, theme='dark_teal.xml')
+        
+        # Show window
+        window.show()
+        
+        # Start event loop
+        sys.exit(app.exec())
     except Exception as e:
-        logger.error(f"Application error: {e}", exc_info=True)
-        raise
+        print(f"Error starting application: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

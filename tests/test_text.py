@@ -4,7 +4,7 @@ Tests for text extraction functionality.
 import unittest
 import os
 import tempfile
-import fitz  # PyMuPDF
+import pymupdf
 
 from core.text_extraction import TextExtractor
 
