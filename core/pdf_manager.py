@@ -1,435 +1,336 @@
 """
-Core PDF management functionality.
+PDF Manager module for handling PDF operations like page deletion, addition, and saving.
 """
-import pymupdf
-import logging
+import pymupdf as fitz
 import os
+import tempfile
+import shutil
+import logging
+import time
+from contextlib import contextmanager
 
+# Logging ayarları
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 class PDFManager:
-    """Manages PDF document operations."""
-    
+    """Class for managing PDF documents."""
+
     def __init__(self):
-        """Initialize PDF manager."""
+        """Initialize the PDF manager."""
         self.doc = None
         self.file_path = None
-        self._has_changes = False
-        
+        self.current_file = None
+
     def open_pdf(self, file_path):
         """Open a PDF file.
-        
+
         Args:
-            file_path: Path to PDF file
-            
+            file_path (str): Path to the PDF file
+
         Returns:
             bool: True if successful, False otherwise
         """
         try:
-            self.doc = pymupdf.open(file_path)
+            if self.doc:
+                self.close()
+            self.doc = fitz.open(file_path)
             self.file_path = file_path
-            self._has_changes = False
+            self.current_file = file_path
             return True
-            
         except Exception as e:
             logger.error(f"Error opening PDF: {e}")
             return False
-            
-    def save_pdf(self):
-        """Save the current PDF file.
-        
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        if not self.doc or not self.file_path:
-            return False
-            
-        try:
-            self.doc.save(self.file_path)
-            self._has_changes = False
-            return True
-            
-        except Exception as e:
-            logger.error(f"Error saving PDF: {e}")
-            return False
-            
-    def save_pdf_as(self, file_path):
-        """Save the current PDF file with a new name.
-        
-        Args:
-            file_path: New file path
-            
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        if not self.doc:
-            return False
-            
-        try:
-            self.doc.save(file_path)
-            self.file_path = file_path
-            self._has_changes = False
-            return True
-            
-        except Exception as e:
-            logger.error(f"Error saving PDF: {e}")
-            return False
-            
-    def merge_pdfs(self, pdf_files):
-        """Merge multiple PDFs into one.
-        
-        Args:
-            pdf_files: List of PDF file paths to merge
-            
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        if not pdf_files:
-            return False
-            
-        try:
-            # Create new PDF document
-            self.doc = pymupdf.open()
-            self.file_path = None
-            self._has_changes = True
-            
-            # Add pages from each PDF
-            for pdf_file in pdf_files:
-                try:
-                    src_doc = pymupdf.open(pdf_file)
-                    self.doc.insert_pdf(src_doc)
-                    src_doc.close()
-                except Exception as e:
-                    logger.error(f"Error merging PDF {pdf_file}: {e}")
-                    continue
-                    
-            return True
-        except Exception as e:
-            logger.error(f"Error creating merged PDF: {e}")
-            return False
-            
+
     def get_page_count(self):
         """Get the number of pages in the PDF.
-        
+
         Returns:
-            int: Number of pages, 0 if no document is open
+            int: Number of pages or 0 if no document is open
         """
-        return len(self.doc) if self.doc else 0
-        
-    def get_page(self, page_num):
+        if self.doc:
+            return len(self.doc)
+        return 0
+
+    def get_page(self, page_index):
         """Get a specific page from the PDF.
-        
+
         Args:
-            page_num: Page number (0-based)
-            
+            page_index (int): Index of the page to get
+
         Returns:
-            Page: PDF page object, None if invalid
+            Page: PyMuPDF Page object or None if invalid
         """
-        if not self.doc or page_num < 0 or page_num >= len(self.doc):
+        if self.doc and 0 <= page_index < len(self.doc):
+            return self.doc[page_index]
+        return None
+
+    def get_page_thumbnail(self, page_index):
+        """Get a thumbnail of a specific page.
+
+        Args:
+            page_index (int): Index of the page to get thumbnail for
+
+        Returns:
+            QPixmap: Thumbnail of the page or None if invalid
+        """
+        if not self.doc or not (0 <= page_index < len(self.doc)):
             return None
-            
-        return self.doc[page_num]
-        
-    def rotate_page(self, page_num, angle):
-        """Rotate a page by the specified angle.
-        
-        Args:
-            page_num: Page number (0-based)
-            angle: Rotation angle in degrees (90, 180, 270)
-            
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        if not self.doc or page_num < 0 or page_num >= len(self.doc):
-            return False
-            
+
         try:
-            page = self.doc[page_num]
-            current_rotation = page.rotation
-            new_rotation = (current_rotation + angle) % 360
-            page.set_rotation(new_rotation)
-            self._has_changes = True
-            return True
-            
+            from PyQt6.QtGui import QPixmap, QImage
+            page = self.doc[page_index]
+            # Set zoom matrix for thumbnail size (120x160 target size)
+            zoom = min(120 / page.rect.width, 160 / page.rect.height)
+            matrix = fitz.Matrix(zoom, zoom)
+            # Render page to pixmap
+            pix = page.get_pixmap(matrix=matrix)
+            # Convert to QImage then QPixmap
+            img = QImage(pix.samples, pix.width, pix.height,
+                        pix.stride, QImage.Format.Format_RGB888)
+            return QPixmap.fromImage(img)
         except Exception as e:
-            logger.error(f"Error rotating page: {e}")
-            return False
-            
-    def delete_page(self, page_num):
-        """Delete a page from the PDF.
-        
+            logger.error(f"Error generating thumbnail for page {page_index}: {e}")
+            return None
+
+    def get_page_pixmap(self, page_index, zoom=1.0):
+        """Get a full resolution pixmap of a specific page.
+
         Args:
-            page_num: Page number (0-based)
-            
+            page_index (int): Index of the page to get pixmap for
+            zoom (float, optional): Zoom factor for rendering. Defaults to 1.0.
+
+        Returns:
+            QPixmap: Full resolution pixmap of the page or None if invalid
+        """
+        if not self.doc or not (0 <= page_index < len(self.doc)):
+            return None
+
+        try:
+            from PyQt6.QtGui import QPixmap, QImage
+            page = self.doc[page_index]
+            # Create matrix with zoom factor
+            matrix = fitz.Matrix(zoom, zoom)
+            # Render page to pixmap
+            pix = page.get_pixmap(matrix=matrix)
+            # Convert to QImage then QPixmap
+            img = QImage(pix.samples, pix.width, pix.height,
+                        pix.stride, QImage.Format.Format_RGB888)
+            return QPixmap.fromImage(img)
+        except Exception as e:
+            logger.error(f"Error generating pixmap for page {page_index}: {e}")
+            return None
+
+    @contextmanager
+    def _create_temp_doc(self):
+        """Context manager to create a temporary document and handle cleanup.
+
+        Yields:
+            fitz.Document: A new temporary PDF document
+        """
+        temp_doc = fitz.open()
+        try:
+            yield temp_doc
+        finally:
+            if temp_doc:
+                temp_doc.close()
+
+    def delete_page(self, page_index):
+        """Delete a page from the PDF.
+
+        Args:
+            page_index (int): Index of the page to delete
+
         Returns:
             bool: True if successful, False otherwise
         """
-        if not self.doc or page_num < 0 or page_num >= len(self.doc):
+        if not self.doc or not (0 <= page_index < len(self.doc)):
             return False
-            
+
         try:
-            self.doc.delete_page(page_num)
-            self._has_changes = True
+            # Create a new document without the specified page
+            with self._create_temp_doc() as new_doc:
+                for i in range(len(self.doc)):
+                    if i != page_index:
+                        new_doc.insert_pdf(self.doc, from_page=i, to_page=i)
+
+                # Save to a temporary file
+                temp_fd, temp_path = tempfile.mkstemp(suffix=".pdf")
+                os.close(temp_fd)
+                new_doc.save(temp_path)
+
+            # Close the current document
+            self.doc.close()
+
+            # Open the new document
+            self.doc = fitz.open(temp_path)
+
+            # Clean up the temporary file
+            os.unlink(temp_path)
+
             return True
-            
         except Exception as e:
             logger.error(f"Error deleting page: {e}")
             return False
-            
-    def extract_text(self, page_num):
-        """Extract text from a page.
-        
+
+    def save_pdf(self, save_path=None):
+        """Save the PDF to a file.
+
         Args:
-            page_num: Page number (0-based)
-            
-        Returns:
-            str: Extracted text, empty string if failed
-        """
-        if not self.doc or page_num < 0 or page_num >= len(self.doc):
-            return ""
-            
-        try:
-            page = self.doc[page_num]
-            return page.get_text()
-            
-        except Exception as e:
-            logger.error(f"Error extracting text: {e}")
-            return ""
-            
-    def extract_image(self, page_num, zoom=2.0):
-        """Extract page as image.
-        
-        Args:
-            page_num: Page number (0-based)
-            zoom: Zoom factor for the image
-            
-        Returns:
-            bytes: PNG image data, None if failed
-        """
-        if not self.doc or page_num < 0 or page_num >= len(self.doc):
-            return None
-            
-        try:
-            page = self.doc[page_num]
-            mat = fitz.Matrix(zoom, zoom)
-            pix = page.get_pixmap(matrix=mat)
-            return pix.tobytes()
-            
-        except Exception as e:
-            logger.error(f"Error extracting image: {e}")
-            return None
-            
-    def add_page(self, page):
-        """Add a page to the PDF.
-        
-        Args:
-            page: Page object to add
-            
+            save_path (str, optional): Path to save the PDF. If None, uses the original path.
+
         Returns:
             bool: True if successful, False otherwise
         """
         if not self.doc:
             return False
-            
+
         try:
-            self.doc.insert_page(-1, page)
-            self._has_changes = True
-            return True
-            
+            path = save_path if save_path else self.file_path
+            current_path = os.path.abspath(path)
+
+            # Create a temporary file
+            fd, temp_path = tempfile.mkstemp(suffix=".pdf")
+            os.close(fd)
+
+            try:
+                # Save to the temporary file with cleanup options
+                # garbage=4: agresif PDF temizleme (xref tablosunu yeniden oluşturur)
+                # deflate=True: içeriği sıkıştırır ve dosya boyutunu küçültür
+                self.doc.save(temp_path, garbage=4, deflate=True, clean=True)
+            except Exception as e:
+                logger.warning(f"PDF kaydetme hatası, onarım deneniyor: {e}")
+                # Onarım için yeni bir belge oluşturup sayfaları kopyalama
+                try:
+                    repair_doc = fitz.open()
+                    for page_num in range(len(self.doc)):
+                        try:
+                            repair_doc.insert_pdf(self.doc, from_page=page_num, to_page=page_num)
+                        except Exception as page_error:
+                            logger.warning(f"Sayfa {page_num} kopyalanamadı: {page_error}")
+                    repair_doc.save(temp_path, garbage=4, deflate=True, clean=True)
+                    repair_doc.close()
+                except Exception as repair_error:
+                    logger.error(f"PDF onarım hatası: {repair_error}")
+                    if os.path.exists(temp_path):
+                        os.unlink(temp_path)
+                    raise repair_error
+
+            # Hedef dosya yolunu kontrol et
+            if os.path.exists(current_path):
+                # Dosya zaten varsa, yedek oluştur
+                backup_fd, backup_path = tempfile.mkstemp(suffix=".pdf.bak")
+                os.close(backup_fd)
+
+                # Yedekleme işlemi - dosya kullanımda hatası için yeniden deneme
+                max_attempts = 3
+                for attempt in range(max_attempts):
+                    try:
+                        shutil.copy2(current_path, backup_path)
+                        break
+                    except PermissionError as pe:
+                        if attempt < max_attempts - 1:
+                            logger.warning(f"Dosya kullanımda, {attempt+1}. deneme: {pe}")
+                            time.sleep(1)  # Kısa bir bekleme
+                        else:
+                            logger.error(f"Yedekleme başarısız, dosya kullanımda: {pe}")
+                            if os.path.exists(temp_path):
+                                os.unlink(temp_path)
+                            if os.path.exists(backup_path):
+                                os.unlink(backup_path)
+                            return False
+            else:
+                backup_path = None
+
+            try:
+                # Belgeyi kapatmadan önce referansını saklayalım
+                doc_path = self.doc.name
+
+                # Belgeyi şimdi kapatıyoruz
+                self.doc.close()
+
+                # Hedef dosyaya taşıma - dosya kullanımda hatası için yeniden deneme
+                max_attempts = 3
+                for attempt in range(max_attempts):
+                    try:
+                        # Hedef dosya varsa ve kullanımdaysa, alternatif strateji kullan
+                        if os.path.exists(current_path):
+                            # Önce hedef dosyayı silmeyi dene
+                            try:
+                                os.unlink(current_path)
+                            except PermissionError:
+                                # Dosya silinemiyorsa, farklı bir isimle kaydet
+                                alt_path = f"{current_path}.new"
+                                shutil.move(temp_path, alt_path)
+                                temp_path = alt_path
+                                # Dosya kullanımda uyarısı
+                                logger.warning(f"Hedef dosya kullanımda, alternatif kaydetme: {alt_path}")
+
+                        # Geçici dosyayı hedefe taşı
+                        shutil.move(temp_path, current_path)
+                        break
+                    except PermissionError as pe:
+                        if attempt < max_attempts - 1:
+                            logger.warning(f"Dosya taşıma hatası, {attempt+1}. deneme: {pe}")
+                            time.sleep(1)  # Kısa bir bekleme
+                        else:
+                            logger.error(f"Dosya taşıma başarısız, dosya kullanımda: {pe}")
+                            # Yedek varsa geri yükle
+                            if backup_path and os.path.exists(backup_path):
+                                self.doc = fitz.open(backup_path)
+                                if os.path.exists(temp_path):
+                                    os.unlink(temp_path)
+                            return False
+
+                # Belgeyi yeniden aç
+                self.doc = fitz.open(current_path)
+
+                # İşlem başarılıysa yedeği sil
+                if backup_path and os.path.exists(backup_path):
+                    try:
+                        os.unlink(backup_path)
+                    except:
+                        pass  # Yedek silinmezse önemli değil
+
+                if save_path:  # Update file path if saving to a new location
+                    self.file_path = save_path
+
+                return True
+            except Exception as e:
+                # Hata durumunda yedeği geri yükle
+                if backup_path and os.path.exists(backup_path):
+                    try:
+                        if os.path.exists(current_path):
+                            os.unlink(current_path)
+                        shutil.move(backup_path, current_path)
+                    except:
+                        logger.error(f"Yedek geri yükleme hatası: {e}")
+
+                # Orijinal belgeyi yeniden açmayı dene
+                if self.file_path:
+                    try:
+                        self.doc = fitz.open(self.file_path)
+                    except Exception as reopen_error:
+                        logger.error(f"Orijinal belgeyi yeniden açma hatası: {reopen_error}")
+
+                # Geçici dosyaları temizle
+                for path in [temp_path, backup_path]:
+                    if path and os.path.exists(path):
+                        try:
+                            os.unlink(path)
+                        except:
+                            pass
+
+                raise e
+
         except Exception as e:
-            logger.error(f"Error adding page: {e}")
+            logger.error(f"Error saving PDF: {e}")
             return False
-            
-    def has_changes(self):
-        """Check if there are unsaved changes.
-        
-        Returns:
-            bool: True if there are unsaved changes
-        """
-        return self._has_changes
-        
-    def mark_changed(self):
-        """Mark the document as having unsaved changes."""
-        self._has_changes = True
-        
+
     def close(self):
         """Close the current PDF document."""
         if self.doc:
             self.doc.close()
             self.doc = None
             self.file_path = None
-            self._has_changes = False
-            
-    def split_pdf(self, output_dir, split_ranges=None):
-        """Split PDF into multiple files.
-        
-        Args:
-            output_dir: Directory to save split PDFs
-            split_ranges: List of tuples (start, end) for page ranges.
-                        If None, each page becomes a separate PDF.
-                        Page numbers are 0-based.
-                        
-        Returns:
-            list: List of created PDF file paths, empty if failed
-        """
-        if not self.doc:
-            return []
-            
-        try:
-            output_files = []
-            page_count = len(self.doc)
-            
-            # If no ranges specified, create one PDF per page
-            if not split_ranges:
-                split_ranges = [(i, i) for i in range(page_count)]
-                
-            # Create output PDFs
-            for i, (start, end) in enumerate(split_ranges):
-                if start < 0 or end >= page_count or start > end:
-                    logger.error(f"Invalid page range: {start}-{end}")
-                    continue
-                    
-                try:
-                    # Create new PDF
-                    new_doc = pymupdf.open()
-                    
-                    # Copy pages
-                    new_doc.insert_pdf(self.doc, from_page=start, to_page=end)
-                    
-                    # Save PDF
-                    output_file = os.path.join(output_dir, f"split_{i + 1}.pdf")
-                    new_doc.save(output_file)
-                    new_doc.close()
-                    
-                    output_files.append(output_file)
-                except Exception as e:
-                    logger.error(f"Error creating split PDF {i + 1}: {e}")
-                    continue
-                    
-            return output_files
-        except Exception as e:
-            logger.error(f"Error splitting PDF: {e}")
-            return []
-            
-    def add_text_annotation(self, page_num, rect, text, color=(1, 1, 0)):
-        """Add a text annotation to a page.
-        
-        Args:
-            page_num: Page number (0-based)
-            rect: Rectangle coordinates (x0, y0, x1, y1)
-            text: Text content
-            color: Annotation color in RGB format (default: yellow)
-            
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        if not self.doc or page_num < 0 or page_num >= len(self.doc):
-            return False
-            
-        try:
-            page = self.doc[page_num]
-            annot = page.add_text_annot(rect, text)
-            annot.set_colors(stroke=color)
-            annot.update()
-            self._has_changes = True
-            return True
-        except Exception as e:
-            logger.error(f"Error adding text annotation: {e}")
-            return False
-            
-    def add_highlight_annotation(self, page_num, rect, color=(1, 1, 0)):
-        """Add a highlight annotation to a page.
-        
-        Args:
-            page_num: Page number (0-based)
-            rect: Rectangle coordinates (x0, y0, x1, y1)
-            color: Highlight color in RGB format (default: yellow)
-            
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        if not self.doc or page_num < 0 or page_num >= len(self.doc):
-            return False
-            
-        try:
-            page = self.doc[page_num]
-            annot = page.add_highlight_annot(rect)
-            annot.set_colors(stroke=color)
-            annot.update()
-            self._has_changes = True
-            return True
-        except Exception as e:
-            logger.error(f"Error adding highlight annotation: {e}")
-            return False
-            
-    def add_ink_annotation(self, page_num, points, color=(0, 0, 1), width=2):
-        """Add an ink (drawing) annotation to a page.
-        
-        Args:
-            page_num: Page number (0-based)
-            points: List of point lists, each sublist is a stroke
-            color: Ink color in RGB format (default: blue)
-            width: Line width (default: 2)
-            
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        if not self.doc or page_num < 0 or page_num >= len(self.doc):
-            return False
-            
-        try:
-            page = self.doc[page_num]
-            annot = page.add_ink_annot(points)
-            annot.set_colors(stroke=color)
-            annot.set_border(width=width)
-            annot.update()
-            self._has_changes = True
-            return True
-        except Exception as e:
-            logger.error(f"Error adding ink annotation: {e}")
-            return False
-            
-    def get_annotations(self, page_num):
-        """Get all annotations on a page.
-        
-        Args:
-            page_num: Page number (0-based)
-            
-        Returns:
-            list: List of annotations, empty if failed
-        """
-        if not self.doc or page_num < 0 or page_num >= len(self.doc):
-            return []
-            
-        try:
-            page = self.doc[page_num]
-            return page.annots()
-        except Exception as e:
-            logger.error(f"Error getting annotations: {e}")
-            return []
-            
-    def delete_annotation(self, page_num, annot_index):
-        """Delete an annotation from a page.
-        
-        Args:
-            page_num: Page number (0-based)
-            annot_index: Index of annotation to delete
-            
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        if not self.doc or page_num < 0 or page_num >= len(self.doc):
-            return False
-            
-        try:
-            page = self.doc[page_num]
-            annots = page.annots()
-            if annot_index < 0 or annot_index >= len(annots):
-                return False
-                
-            page.delete_annot(annots[annot_index])
-            self._has_changes = True
-            return True
-        except Exception as e:
-            logger.error(f"Error deleting annotation: {e}")
-            return False
+            self.current_file = None

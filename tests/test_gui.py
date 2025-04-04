@@ -8,10 +8,9 @@ import tempfile
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtTest import QTest
 from PyQt6.QtCore import Qt
+from pymupdf import pymupdf
 
-from gui.app import PDFEditorApp
-from gui.toolbar_tabs.edit_tab import EditTab
-from gui.toolbar_tabs.view_tab import ViewTab
+from gui.app import *
 from gui.preview import PDFPreview
 
 class GUITests(unittest.TestCase):
@@ -24,14 +23,14 @@ class GUITests(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures."""
-        self.editor = PDFEditorApp()
+        self.editor = PDFPreview()
         
         # Create a temporary PDF file for testing
         self.temp_dir = tempfile.TemporaryDirectory()
         self.test_pdf_path = os.path.join(self.temp_dir.name, "test.pdf")
         
         # Create a simple PDF with 3 pages
-        doc = fitz.open()
+        doc = pymupdf.open()
         for i in range(3):
             page = doc.new_page(width=595, height=842)  # A4 size
             page.insert_text((50, 50), f"Test Page {i + 1}")

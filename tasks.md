@@ -5,14 +5,14 @@
 - [x] Implemented PDF Manager module for basic PDF operations
 - [x] Implemented Text Extraction module
 - [x] Implemented Merge/Split module
-- [x] Implemented Annotations module
-- [x] Created GUI structure with ttk widgets
-- [x] Applied "adapta" theme from ttkthemes library
-- [x] Set up basic PDF viewing functionality
-- [x] Implemented page deletion functionality
-- [x] Created test files for core functionality
-- [x] Implemented PDF merging functionality
-- [x] Implemented PDF splitting functionality
+- [ ] Implemented Annotations module
+- [ ] Created GUI structure with pyqt widgets
+- [ ] applied qt-material theme
+- [ ] Set up basic PDF viewing functionality
+- [ ] Implemented page deletion functionality
+- [ ] Created test files for core functionality
+- [ ] Implemented PDF merging functionality
+- [ ] Implemented PDF splitting functionality
 
 ## Pending Tasks
 - [ ] Implement page reordering functionality
